@@ -6,6 +6,8 @@ Complete specification of all MCP tools exposed by Personal Automator.
 
 Personal Automator implements the Model Context Protocol (MCP) to expose task automation capabilities. The server uses **stdio transport** for local integration with MCP clients like Claude Desktop.
 
+**Important**: Tasks can only be created from predefined templates. The MCP API does not accept arbitrary code—templates must be created through the desktop UI.
+
 ## Connection
 
 ### Claude Desktop Configuration
@@ -42,21 +44,72 @@ await client.connect(transport);
 
 ## Tools
 
-### Task Management
+### Templates
 
-#### `schedule_task`
+#### `list_templates`
 
-Create a new scheduled task.
+List all available task templates.
 
 **Parameters:**
 
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
+| `category` | string | No | Filter by category |
+
+**Response:**
+
+```json
+{
+  "templates": [
+    {
+      "id": "http-health-check",
+      "name": "HTTP Health Check",
+      "description": "Monitor a URL and report status",
+      "category": "monitoring",
+      "params": [
+        { "name": "url", "type": "string", "required": true, "description": "URL to check" },
+        { "name": "expected_status", "type": "number", "required": false, "default": 200 }
+      ],
+      "required_credentials": [],
+      "suggested_schedule": "*/5 * * * *"
+    },
+    {
+      "id": "github-pr",
+      "name": "GitHub Pull Request",
+      "description": "Create a pull request on GitHub",
+      "category": "github",
+      "params": [
+        { "name": "repo", "type": "string", "required": true },
+        { "name": "base", "type": "string", "required": true },
+        { "name": "head", "type": "string", "required": true },
+        { "name": "title", "type": "string", "required": true },
+        { "name": "body", "type": "string", "required": false }
+      ],
+      "required_credentials": ["GITHUB_TOKEN"]
+    }
+  ],
+  "total": 2
+}
+```
+
+---
+
+### Task Management
+
+#### `schedule_task`
+
+Create a new scheduled task from a template.
+
+**Parameters:**
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| `template_id` | string | Yes | Template to use (from `list_templates`) |
 | `name` | string | Yes | Unique task identifier |
 | `description` | string | No | Human-readable description |
-| `code` | string | Yes | JavaScript code to execute |
+| `params` | object | Yes | Template parameters |
 | `schedule` | object | Yes | When to run the task |
-| `credentials` | string[] | No | Credential names to inject |
+| `credentials` | string[] | No | Additional credentials beyond template requirements |
 | `enabled` | boolean | No | Start enabled (default: true) |
 
 **Schedule Object:**
@@ -76,11 +129,14 @@ Create a new scheduled task.
 
 ```json
 {
-  "name": "health-check",
+  "template_id": "http-health-check",
+  "name": "api-health-check",
   "description": "Check API health every 5 minutes",
-  "code": "const res = await fetch('https://api.example.com/health');\nconsole.log('Status:', res.status);\nreturn { status: res.status };",
-  "schedule": { "type": "cron", "expression": "*/5 * * * *" },
-  "credentials": ["API_TOKEN"]
+  "params": {
+    "url": "https://api.example.com/health",
+    "expected_status": 200
+  },
+  "schedule": { "type": "cron", "expression": "*/5 * * * *" }
 }
 ```
 
@@ -91,7 +147,8 @@ Create a new scheduled task.
   "success": true,
   "task": {
     "id": 1,
-    "name": "health-check",
+    "name": "api-health-check",
+    "template_id": "http-health-check",
     "next_run": "2024-01-15T10:05:00Z"
   }
 }
@@ -144,7 +201,6 @@ Get detailed information about a specific task.
 | Name | Type | Required | Description |
 |------|------|----------|-------------|
 | `name` | string | Yes | Task name |
-| `include_code` | boolean | No | Include task code (default: true) |
 | `recent_executions` | number | No | Number of recent executions to include (default: 5) |
 
 **Response:**
@@ -153,11 +209,16 @@ Get detailed information about a specific task.
 {
   "task": {
     "id": 1,
-    "name": "health-check",
+    "name": "api-health-check",
     "description": "Check API health every 5 minutes",
-    "code": "const res = await fetch('https://api.example.com/health');\n...",
+    "template_id": "http-health-check",
+    "template_name": "HTTP Health Check",
+    "params": {
+      "url": "https://api.example.com/health",
+      "expected_status": 200
+    },
     "schedule": { "type": "cron", "expression": "*/5 * * * *" },
-    "credentials": ["API_TOKEN"],
+    "credentials": [],
     "enabled": true,
     "created_at": "2024-01-10T12:00:00Z",
     "updated_at": "2024-01-10T12:00:00Z",
@@ -188,10 +249,12 @@ Modify an existing task. Only provided fields are updated.
 | `name` | string | Yes | Task name to update |
 | `new_name` | string | No | Rename the task |
 | `description` | string | No | New description |
-| `code` | string | No | New code |
+| `params` | object | No | Updated template parameters |
 | `schedule` | object | No | New schedule |
 | `credentials` | string[] | No | New credential list |
 | `enabled` | boolean | No | Enable/disable |
+
+**Note**: The template cannot be changed after task creation. To use a different template, delete and recreate the task.
 
 **Response:**
 
@@ -200,7 +263,7 @@ Modify an existing task. Only provided fields are updated.
   "success": true,
   "task": {
     "id": 1,
-    "name": "health-check",
+    "name": "api-health-check",
     "next_run": "2024-01-15T10:05:00Z"
   }
 }
@@ -549,39 +612,6 @@ Get system health and status information.
 
 ---
 
-#### `get_templates`
-
-Get available task templates.
-
-**Parameters:** None
-
-**Response:**
-
-```json
-{
-  "templates": [
-    {
-      "id": "http-health-check",
-      "name": "HTTP Health Check",
-      "description": "Monitor a URL and report status",
-      "code": "const response = await fetch(URL);\nconsole.log('Status:', response.status);\nreturn { status: response.status };",
-      "variables": ["URL"],
-      "suggested_schedule": "*/5 * * * *"
-    },
-    {
-      "id": "github-pr",
-      "name": "GitHub Pull Request",
-      "description": "Create a pull request on GitHub",
-      "code": "// GitHub PR creation code...",
-      "variables": ["REPO", "BASE_BRANCH", "HEAD_BRANCH", "TITLE"],
-      "required_credentials": ["GITHUB_TOKEN"]
-    }
-  ]
-}
-```
-
----
-
 ## Error Handling
 
 All tools follow a consistent error response format:
@@ -598,6 +628,8 @@ All tools follow a consistent error response format:
 
 | Code | Description |
 |------|-------------|
+| `template_not_found` | Template with specified ID doesn't exist |
+| `invalid_params` | Template parameters missing or invalid |
 | `task_not_found` | Task with specified name doesn't exist |
 | `task_exists` | Task with specified name already exists |
 | `invalid_schedule` | Invalid cron expression or datetime |
@@ -606,7 +638,7 @@ All tools follow a consistent error response format:
 | `credential_in_use` | Credential is used by tasks (delete with force) |
 | `execution_not_found` | Execution ID doesn't exist |
 | `execution_timeout` | Task execution exceeded timeout |
-| `execution_error` | Task code threw an error |
+| `execution_error` | Task threw an error |
 | `validation_error` | Input validation failed |
 
 ---
@@ -623,11 +655,11 @@ Personal Automator does not impose rate limits—it runs locally on your machine
 
 ## Credential Injection
 
-When tasks run, requested credentials are available via the `credentials` object:
+When tasks run, credentials specified by the template (plus any additional credentials assigned to the task) are available via the `credentials` object within the template code:
 
 ```javascript
-// Task code
-const response = await fetch('https://api.example.com/data', {
+// Example template code (authored via UI)
+const response = await fetch(params.url, {
   headers: {
     'Authorization': `Bearer ${credentials.API_TOKEN}`
   }
@@ -636,5 +668,5 @@ const response = await fetch('https://api.example.com/data', {
 
 Credentials are:
 - Decrypted only at execution time
-- Available only to tasks that list them
+- Available only to templates/tasks that list them
 - Never logged or returned in API responses

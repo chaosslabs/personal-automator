@@ -6,9 +6,9 @@ Personal Automator is a local-first Electron application that provides task auto
 
 1. **Local-First**: All data stays on the user's machine. No cloud services, no accounts, no telemetry.
 2. **MCP-Only Interface**: All automation capabilities are exposed through MCP tools. No built-in AI assistant.
-3. **Secure Credentials**: Encrypted credential storage using OS keychain.
-4. **Developer-Friendly**: JavaScript-based tasks, familiar tooling, transparent operation.
-5. **Trust the User**: No sandboxing—users run their own code with full Node.js capabilities.
+3. **Template-Based Execution**: Tasks run from predefined templates only. MCP cannot execute arbitrary code—templates are authored through the desktop UI.
+4. **Secure Credentials**: Encrypted credential storage using OS keychain.
+5. **Developer-Friendly**: JavaScript-based templates, familiar tooling, transparent operation.
 
 ## System Overview
 
@@ -27,10 +27,10 @@ Personal Automator is a local-first Electron application that provides task auto
 │  │                         MCP Server Layer                             │ │
 │  │                                                                      │ │
 │  │  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐ ┌─────────────┐ │ │
-│  │  │ Task Tools   │ │ Exec Tools   │ │ Cred Tools   │ │ Query Tools │ │ │
-│  │  │ schedule     │ │ execute      │ │ add          │ │ list        │ │ │
-│  │  │ update       │ │ get_history  │ │ delete       │ │ get         │ │ │
-│  │  │ delete       │ │              │ │ list         │ │ search      │ │ │
+│  │  │ Template     │ │ Task Tools   │ │ Exec Tools   │ │ Cred Tools  │ │ │
+│  │  │ Tools        │ │ schedule     │ │ execute      │ │ add         │ │ │
+│  │  │ list         │ │ update       │ │ get_history  │ │ delete      │ │ │
+│  │  │              │ │ delete       │ │              │ │ list        │ │ │
 │  │  └──────────────┘ └──────────────┘ └──────────────┘ └─────────────┘ │ │
 │  └─────────────────────────────────────────────────────────────────────┘ │
 │                                    │                                      │
@@ -54,14 +54,13 @@ Personal Automator is a local-first Electron application that provides task auto
 │  │  ┌─────────────────────────────────────────────────────────────┐    │ │
 │  │  │                    SQLite Database                           │    │ │
 │  │  │                                                              │    │ │
-│  │  │  tasks          executions       credentials_meta            │    │ │
-│  │  │  ├─ id          ├─ id            ├─ id                       │    │ │
-│  │  │  ├─ name        ├─ task_id       ├─ name                     │    │ │
-│  │  │  ├─ code        ├─ started_at    ├─ type                     │    │ │
-│  │  │  ├─ schedule    ├─ finished_at   ├─ created_at               │    │ │
-│  │  │  ├─ credentials ├─ success       └─ last_used                │    │ │
-│  │  │  ├─ enabled     ├─ output                                    │    │ │
-│  │  │  └─ ...         └─ error                                     │    │ │
+│  │  │  templates      tasks            executions     credentials  │    │ │
+│  │  │  ├─ id          ├─ id            ├─ id          ├─ id        │    │ │
+│  │  │  ├─ name        ├─ template_id   ├─ task_id     ├─ name      │    │ │
+│  │  │  ├─ code        ├─ name          ├─ started_at  ├─ type      │    │ │
+│  │  │  ├─ params_def  ├─ params        ├─ finished_at ├─ created   │    │ │
+│  │  │  └─ ...         ├─ schedule      ├─ output      └─ last_used │    │ │
+│  │  │                 └─ enabled       └─ error                    │    │ │
 │  │  └─────────────────────────────────────────────────────────────┘    │ │
 │  │                                                                      │ │
 │  │  ┌─────────────────────────────────────────────────────────────┐    │ │
@@ -74,7 +73,7 @@ Personal Automator is a local-first Electron application that provides task auto
 │  │                        UI Layer (Electron Renderer)                  │ │
 │  │                                                                      │ │
 │  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────────────┐   │ │
-│  │  │ Task List │ │ Code      │ │ Execution │ │ Credential        │   │ │
+│  │  │ Task List │ │ Template  │ │ Execution │ │ Credential        │   │ │
 │  │  │           │ │ Editor    │ │ Logs      │ │ Manager           │   │ │
 │  │  └───────────┘ └───────────┘ └───────────┘ └───────────────────┘   │ │
 │  └─────────────────────────────────────────────────────────────────────┘ │
@@ -118,25 +117,25 @@ type Schedule =
 
 ### Executor (`src/main/executor.ts`)
 
-Runs task code directly in Node.js with full access to all APIs.
+Runs template code with task parameters in Node.js.
 
 **Responsibilities:**
-- Dynamically import/execute task code
-- Inject credentials into execution context
+- Load template code from database
+- Inject task parameters and credentials into execution context
 - Handle async execution and timeouts
 - Capture console output and return values
 - Handle errors gracefully
 
 **Execution Context:**
 ```typescript
-// Tasks have access to:
+// Template code has access to:
 const context = {
+  params,                           // Task-specific parameters
+  credentials: injectedCredentials, // Task-specific secrets
   fetch,                            // Native fetch
   console,                          // Captured for logs
-  credentials: injectedCredentials, // Task-specific secrets
   require,                          // Full Node.js require
   process: { env },                 // Environment variables
-  // Full Node.js APIs available
 };
 ```
 
@@ -172,20 +171,37 @@ SQLite database for persistent storage using better-sqlite3.
 **Schema:**
 
 ```sql
--- Tasks
+-- Templates (authored via UI)
+CREATE TABLE templates (
+    id TEXT PRIMARY KEY,               -- e.g., 'http-health-check'
+    name TEXT NOT NULL,                -- e.g., 'HTTP Health Check'
+    description TEXT,
+    category TEXT,                     -- e.g., 'monitoring', 'github'
+    code TEXT NOT NULL,                -- JavaScript code
+    params_schema TEXT NOT NULL,       -- JSON schema for parameters
+    required_credentials TEXT DEFAULT '[]',  -- JSON array
+    suggested_schedule TEXT,           -- e.g., '*/5 * * * *'
+    is_builtin INTEGER DEFAULT 0,      -- 1 for shipped templates
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Tasks (instances of templates)
 CREATE TABLE tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_id TEXT NOT NULL,
     name TEXT UNIQUE NOT NULL,
     description TEXT,
-    code TEXT NOT NULL,
+    params TEXT NOT NULL,              -- JSON: parameter values
     schedule_type TEXT NOT NULL,       -- 'cron', 'once', 'interval'
     schedule_value TEXT NOT NULL,      -- cron expr, ISO datetime, or minutes
-    credentials TEXT DEFAULT '[]',     -- JSON array of credential names
+    credentials TEXT DEFAULT '[]',     -- JSON array of additional credential names
     enabled INTEGER DEFAULT 1,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
     last_run_at TEXT,
-    next_run_at TEXT
+    next_run_at TEXT,
+    FOREIGN KEY (template_id) REFERENCES templates(id)
 );
 
 -- Execution History
@@ -215,20 +231,27 @@ CREATE TABLE credentials (
 CREATE INDEX idx_executions_task_id ON executions(task_id);
 CREATE INDEX idx_executions_started_at ON executions(started_at);
 CREATE INDEX idx_tasks_next_run ON tasks(next_run_at) WHERE enabled = 1;
+CREATE INDEX idx_tasks_template_id ON tasks(template_id);
 ```
 
 ### UI Layer (`src/renderer/`)
 
-React-based UI for visual task management. The UI is optional—all functionality is accessible via MCP.
+React-based UI for task and template management. The UI provides template authoring capabilities not available via MCP.
 
 **Components:**
 
 | Component | Purpose |
 |-----------|---------|
 | `TaskList` | View and manage scheduled tasks |
-| `CodeEditor` | Monaco editor for writing/editing task code |
+| `TemplateEditor` | Monaco editor for authoring/editing templates |
+| `TemplateList` | Browse and manage available templates |
 | `ExecutionLog` | View execution history and logs |
 | `CredentialVault` | Manage stored credentials |
+
+**UI-Only Features:**
+- Template creation and editing (MCP can only use existing templates)
+- Template deletion
+- Built-in template management
 
 **IPC Communication:**
 The renderer communicates with the main process via Electron IPC, not MCP. This provides a direct, low-latency interface for the UI.
@@ -240,11 +263,15 @@ The renderer communicates with the main process via Electron IPC, not MCP. This 
 ```
 MCP Client                    MCP Server              Scheduler              Database
     │                             │                       │                      │
-    │  schedule_task(...)         │                       │                      │
+    │  schedule_task(             │                       │                      │
+    │    template_id, params...)  │                       │                      │
     │────────────────────────────>│                       │                      │
     │                             │                       │                      │
-    │                             │  validate input       │                      │
-    │                             │  parse schedule       │                      │
+    │                             │  SELECT template      │                      │
+    │                             │──────────────────────────────────────────────>│
+    │                             │                       │                      │
+    │                             │  validate params      │                      │
+    │                             │  against schema       │                      │
     │                             │                       │                      │
     │                             │  INSERT task          │                      │
     │                             │──────────────────────────────────────────────>│
@@ -269,6 +296,9 @@ Scheduler              Executor              Credential Vault           Database
     │  execute(task)       │                        │                      │
     │─────────────────────>│                        │                      │
     │                      │                        │                      │
+    │                      │  SELECT template.code (via task.template_id)  │
+    │                      │───────────────────────────────────────────────>│
+    │                      │                        │                      │
     │                      │  getCredentials(names) │                      │
     │                      │───────────────────────>│                      │
     │                      │                        │                      │
@@ -278,8 +308,8 @@ Scheduler              Executor              Credential Vault           Database
     │                      │  INSERT execution (running)                   │
     │                      │───────────────────────────────────────────────>│
     │                      │                        │                      │
-    │                      │  execute task code     │                      │
-    │                      │  ...                   │                      │
+    │                      │  run template code     │                      │
+    │                      │  with params + creds   │                      │
     │                      │                        │                      │
     │                      │  UPDATE execution (result)                    │
     │                      │───────────────────────────────────────────────>│
@@ -325,13 +355,14 @@ personal-automator/
 │   │   ├── App.tsx                # Root component
 │   │   ├── components/
 │   │   │   ├── TaskList.tsx
-│   │   │   ├── TaskEditor.tsx
-│   │   │   ├── CodeEditor.tsx
+│   │   │   ├── TemplateList.tsx
+│   │   │   ├── TemplateEditor.tsx # Monaco editor for templates
 │   │   │   ├── ExecutionLog.tsx
 │   │   │   ├── CredentialVault.tsx
 │   │   │   └── common/
 │   │   ├── hooks/
-│   │   │   ├── useTask.ts
+│   │   │   ├── useTemplates.ts
+│   │   │   ├── useTasks.ts
 │   │   │   ├── useExecutions.ts
 │   │   │   └── useCredentials.ts
 │   │   ├── stores/                # State management
@@ -340,7 +371,7 @@ personal-automator/
 │   └── shared/                    # Shared between main/renderer
 │       ├── types.ts               # TypeScript interfaces
 │       ├── constants.ts           # Shared constants
-│       ├── templates.ts           # Task code templates
+│       ├── builtin-templates.ts   # Built-in task templates
 │       └── validation.ts          # Input validation schemas
 │
 ├── docs/                          # Documentation
@@ -359,20 +390,37 @@ personal-automator/
 
 ## Extension Points
 
-### Custom Task Templates
+### Built-in Templates
 
-Templates are defined in `src/shared/templates.ts` and can be extended:
+Built-in templates are defined in `src/shared/builtin-templates.ts` and loaded on first run:
 
 ```typescript
-interface TaskTemplate {
+interface TemplateDefinition {
   id: string;
   name: string;
   description: string;
+  category: string;
   code: string;
+  paramsSchema: ParamDefinition[];
   requiredCredentials: string[];
   suggestedSchedule?: string;
 }
+
+interface ParamDefinition {
+  name: string;
+  type: 'string' | 'number' | 'boolean';
+  required: boolean;
+  default?: any;
+  description?: string;
+}
 ```
+
+### User-Created Templates
+
+Users create templates through the UI. Template code has access to:
+- `params` - Task-specific parameter values
+- `credentials` - Decrypted credential values
+- Full Node.js APIs including `fetch`, `require`, etc.
 
 ### MCP Resource Extensions
 

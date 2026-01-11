@@ -1,21 +1,24 @@
 # Personal Automator
 
-A local-first task automation engine that exposes scheduling and execution capabilities through MCP (Model Context Protocol). Schedule JavaScript tasks, manage credentials securely, and automate workflows—all running entirely on your machine.
+A local-first task automation engine that exposes scheduling and execution capabilities through MCP (Model Context Protocol). Schedule tasks from predefined templates, manage credentials securely, and automate workflows—all running entirely on your machine.
 
 ## Overview
 
 Personal Automator is designed for developers who want to automate repetitive tasks without deploying to external services. It runs as a local Electron application with an MCP server that any MCP-compatible client (like Claude Desktop) can connect to.
 
-**Key Design Decision**: Personal Automator exposes all functionality through MCP tools only. There is no built-in AI assistant—instead, you connect your preferred MCP client to interact with the automation engine.
+**Key Design Decisions**:
+- **MCP-Only Interface**: All automation capabilities exposed through MCP tools. No built-in AI assistant.
+- **Template-Based Execution**: Tasks run from predefined templates only—no arbitrary code execution via MCP. Templates are authored and reviewed through the desktop UI.
 
 ## Features
 
+- **Template-Based Tasks**: Schedule tasks from curated, reviewed templates
 - **Task Scheduling**: One-time or recurring tasks using cron expressions
 - **Secure Credential Vault**: AES-256 encrypted storage using OS keychain
-- **Full Node.js Access**: Tasks run with complete Node.js capabilities
 - **MCP Server**: Full API exposed via Model Context Protocol
 - **Execution History**: Complete logs and analytics for all task runs
 - **Local-First**: No accounts, no cloud—everything runs on your machine
+- **Template Authoring**: Create custom templates via the desktop UI (use Claude to help generate code)
 
 ## Architecture
 
@@ -52,10 +55,11 @@ Personal Automator exposes the following tools via MCP:
 
 | Tool | Description |
 |------|-------------|
-| `schedule_task` | Create a new scheduled task with code and cron/datetime |
+| `list_templates` | List available task templates |
+| `schedule_task` | Create a scheduled task from a template |
 | `list_tasks` | List all tasks with their status and schedules |
 | `get_task` | Get details of a specific task |
-| `update_task` | Modify an existing task |
+| `update_task` | Modify task schedule or parameters |
 | `delete_task` | Remove a task from the scheduler |
 | `execute_task` | Trigger immediate execution of a task |
 | `get_executions` | Retrieve execution history |
@@ -103,20 +107,27 @@ Add to your Claude Desktop configuration (`~/.config/claude/claude_desktop_confi
 
 ### Example Usage
 
-Once connected via MCP, you can:
+Once connected via MCP, you can ask Claude to schedule tasks using available templates:
 
 ```
-"Schedule a task called 'health-check' that pings https://api.example.com
-every 5 minutes and logs the response status"
+"Schedule a health check for https://api.example.com every 5 minutes"
 ```
 
-The MCP client will use the `schedule_task` tool to create:
+Claude will first call `list_templates` to find the appropriate template, then use `schedule_task`:
 
-```javascript
-const response = await fetch('https://api.example.com/health');
-console.log('Status:', response.status);
-return { status: response.status, timestamp: new Date().toISOString() };
+```json
+{
+  "template_id": "http-health-check",
+  "name": "api-health-check",
+  "params": {
+    "url": "https://api.example.com/health",
+    "expected_status": 200
+  },
+  "schedule": { "type": "cron", "expression": "*/5 * * * *" }
+}
 ```
+
+**Adding Custom Templates**: Use the desktop UI to create new templates. You can use Claude to help generate the template code, then paste it into the template editor for review before saving.
 
 ## Project Structure
 
@@ -133,13 +144,13 @@ personal-automator/
 │   ├── renderer/             # Electron renderer (React UI)
 │   │   ├── components/
 │   │   │   ├── TaskList.tsx
-│   │   │   ├── CodeEditor.tsx
+│   │   │   ├── TemplateEditor.tsx
 │   │   │   ├── ExecutionLog.tsx
 │   │   │   └── CredentialVault.tsx
 │   │   └── App.tsx
 │   └── shared/
 │       ├── types.ts          # Shared TypeScript types
-│       └── templates.ts      # Task code templates
+│       └── templates.ts      # Built-in task templates
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── MCP_API.md
@@ -152,10 +163,11 @@ personal-automator/
 
 ## Security
 
+- **Template-Only Execution**: MCP can only run pre-approved templates—no arbitrary code injection
 - **Encrypted Credentials**: AES-256 encryption with keys derived from OS keychain
 - **No Network Exposure**: MCP server runs locally via stdio, not exposed to network
 - **Local-Only Data**: All data stored locally, never transmitted externally
-- **User-Controlled Code**: You write and control all task code that runs
+- **Reviewed Templates**: Templates are authored via UI, giving you full control over what code can run
 
 See [docs/SECURITY.md](docs/SECURITY.md) for the complete security model.
 

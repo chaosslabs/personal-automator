@@ -6,11 +6,11 @@ Personal Automator is designed as a local-first, single-user application. This d
 
 ### What Personal Automator Trusts
 
-1. **The User**: You have full control over all code that runs. There is no sandboxing—your tasks run with full Node.js capabilities.
+1. **The User**: You have full control over template code through the desktop UI. Templates run with full Node.js capabilities.
 
 2. **The Local Machine**: All data is stored locally. The application trusts the security of the host operating system.
 
-3. **MCP Clients**: Any MCP client that can connect via stdio has full access to all capabilities.
+3. **Templates Created via UI**: Template code is authored and reviewed through the desktop UI before it can be used.
 
 ### What Personal Automator Protects
 
@@ -18,7 +18,9 @@ Personal Automator is designed as a local-first, single-user application. This d
 
 2. **Credential Values in Transit**: Credential values are never returned in API responses or logged.
 
-3. **Local-Only Operation**: No data is transmitted to external servers (except by user-written task code).
+3. **Local-Only Operation**: No data is transmitted to external servers (except by template code).
+
+4. **Code Injection via MCP**: MCP clients cannot inject arbitrary code—they can only schedule tasks using existing templates.
 
 ---
 
@@ -92,27 +94,42 @@ The MCP server does not implement authentication. Security relies on:
 
 ### Tool Access
 
-All MCP tools have full access to:
+MCP tools can:
 
-- Create, read, update, delete tasks
+- List available templates (read-only)
+- Create, read, update, delete tasks (using existing templates only)
 - Execute tasks immediately
 - Access credential metadata (not values)
 - Add and remove credentials
+
+**MCP tools cannot:**
+
+- Create or modify templates (UI-only)
+- Execute arbitrary code
+- Access credential values
 
 ---
 
 ## Task Execution
 
-### No Sandboxing
+### Template-Based Execution
 
-Task code runs directly in the Node.js process with full capabilities:
+Tasks execute template code that was authored and reviewed through the desktop UI. This provides a security boundary:
+
+- **MCP clients can only use existing templates** - no arbitrary code execution
+- **Templates are reviewed before use** - you see and approve the code
+- **Parameters are the only variable input** - template code is fixed
+
+### Full Node.js Access
+
+Template code runs directly in the Node.js process with full capabilities:
 
 - File system access
 - Network access
 - Process spawning
 - All Node.js APIs
 
-**This is intentional.** Personal Automator is a power-user tool for developers who want to automate tasks on their own machine. The user writes and controls all code.
+**This is intentional.** Personal Automator is a power-user tool for developers who want to automate tasks on their own machine. You author and control all template code through the UI.
 
 ### Timeout Protection
 
@@ -174,6 +191,7 @@ When backing up Personal Automator data:
 | Credential theft from disk | AES-256-GCM encryption |
 | Credential exposure in API | Values never returned in responses |
 | Credential exposure in logs | User responsibility (don't log secrets) |
+| Arbitrary code via MCP | Template-only execution; code authored via UI |
 | Runaway task execution | Configurable timeouts |
 | Data loss | SQLite with WAL mode, backup/export features |
 
@@ -181,8 +199,8 @@ When backing up Personal Automator data:
 
 | Threat | Reason |
 |--------|--------|
-| Malicious task code | User writes/controls all code |
-| MCP client attacks | User controls which clients connect |
+| Malicious template code | User authors/reviews all templates via UI |
+| Malicious MCP client | User controls which clients connect; clients can only use existing templates |
 | Local privilege escalation | Relies on OS security |
 | Memory inspection | Standard process security |
 | Physical access | Relies on device security |
@@ -193,12 +211,13 @@ When backing up Personal Automator data:
 
 ### For Users
 
-1. **Don't log credentials**: Avoid `console.log(credentials.API_KEY)`
-2. **Use specific credentials**: Only assign credentials tasks need
-3. **Enable full disk encryption**: Protects database at rest
-4. **Review task code**: Understand what your tasks do
+1. **Review template code**: Understand what templates do before using them
+2. **Don't log credentials in templates**: Avoid `console.log(credentials.API_KEY)`
+3. **Use specific credentials**: Only assign credentials templates actually need
+4. **Enable full disk encryption**: Protects database at rest
 5. **Rotate credentials**: Periodically update API keys
 6. **Backup securely**: Include keychain when backing up
+7. **Be cautious with imported templates**: Review code before importing from external sources
 
 ### Credential Naming
 
@@ -216,16 +235,16 @@ Bad:
 - AKIAIOSFODNN7EXAMPLE
 ```
 
-### Task Code Security
+### Template Code Security
 
 ```javascript
 // Good: Use credentials object
-const response = await fetch(url, {
+const response = await fetch(params.url, {
   headers: { 'Authorization': `Bearer ${credentials.API_TOKEN}` }
 });
 
 // Bad: Hardcoded secrets
-const response = await fetch(url, {
+const response = await fetch(params.url, {
   headers: { 'Authorization': 'Bearer ghp_xxxxx' }
 });
 
@@ -233,7 +252,10 @@ const response = await fetch(url, {
 console.log('Using token:', credentials.API_TOKEN);
 
 // Good: Log success/failure only
-console.log('Request completed:', response.status);
+console.log('Request to', params.url, 'completed:', response.status);
+
+// Good: Use params for variable data
+const result = await fetch(`${params.base_url}/api/${params.endpoint}`);
 ```
 
 ---

@@ -16,10 +16,12 @@ Development roadmap for Personal Automator organized into phases with clear mile
 ### 1.2 Database Layer
 - [ ] Integrate better-sqlite3
 - [ ] Create schema migrations system
-- [ ] Implement tasks table (CRUD operations)
+- [ ] Implement templates table (CRUD operations)
+- [ ] Implement tasks table (references templates)
 - [ ] Implement executions table
 - [ ] Implement credentials metadata table
 - [ ] Add database initialization on first launch
+- [ ] Seed built-in templates on first launch
 
 ### 1.3 Credential Vault
 - [ ] Integrate keytar for OS keychain access
@@ -29,7 +31,7 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] Implement secure credential injection for tasks
 
 ### 1.4 Task Executor
-- [ ] Create execution engine (dynamic function execution)
+- [ ] Create execution engine (load template, inject params)
 - [ ] Implement console output capture
 - [ ] Add timeout handling
 - [ ] Build result/error capture
@@ -55,25 +57,32 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] Implement server initialization
 - [ ] Add graceful shutdown handling
 
-### 2.2 Task Management Tools
-- [ ] `schedule_task` - Create new scheduled task
-  - Parameters: name, description, code, schedule, credentials[]
+### 2.2 Template Tools
+- [ ] `list_templates` - List available templates
+  - Filter by: category
+  - Include: params schema, required credentials
+
+### 2.3 Task Management Tools
+- [ ] `schedule_task` - Create new scheduled task from template
+  - Parameters: template_id, name, params, schedule, credentials[]
+  - Validate params against template schema
   - Validate cron expressions
   - Validate credential references exist
 - [ ] `list_tasks` - List all tasks
-  - Filter by: enabled, has_errors
+  - Filter by: enabled, has_errors, template_id
   - Include: last_run, next_run, status
 - [ ] `get_task` - Get task details
-  - Include: code, schedule, credentials, recent executions
+  - Include: template info, params, schedule, recent executions
 - [ ] `update_task` - Modify existing task
-  - Support partial updates
+  - Support partial param updates
   - Reschedule if schedule changes
+  - Cannot change template (delete and recreate)
 - [ ] `delete_task` - Remove task
   - Cascade delete executions
   - Cancel scheduled job
 - [ ] `toggle_task` - Enable/disable task
 
-### 2.3 Execution Tools
+### 2.4 Execution Tools
 - [ ] `execute_task` - Run task immediately
   - Return execution ID
   - Option: wait for completion or return immediately
@@ -83,7 +92,7 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] `get_execution` - Get single execution details
   - Full output and error logs
 
-### 2.4 Credential Tools
+### 2.5 Credential Tools
 - [ ] `add_credential` - Store new credential
   - Parameters: name, value, type, description
   - Encrypt and store securely
@@ -92,18 +101,17 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] `delete_credential` - Remove credential
   - Warn if credential is in use by tasks
 
-### 2.5 System Tools
+### 2.6 System Tools
 - [ ] `get_status` - System health check
   - Scheduler status
   - Database stats
   - Pending tasks count
-- [ ] `get_templates` - List available task templates
 
 ---
 
 ## Phase 3: User Interface
 
-**Goal**: Electron renderer with full task management UI
+**Goal**: Electron renderer with full task and template management
 
 ### 3.1 Application Shell
 - [ ] Create main window with navigation
@@ -111,25 +119,35 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] Set up IPC communication with main process
 - [ ] Create loading and error states
 
-### 3.2 Task List View
+### 3.2 Template Management (UI-only features)
+- [ ] Template list view with categories
+- [ ] Template editor with Monaco Editor
+  - Syntax highlighting for JavaScript
+  - Parameter schema builder UI
+  - Required credentials selector
+- [ ] Create new template from scratch
+- [ ] Edit existing templates
+- [ ] Delete templates (with task dependency warning)
+- [ ] Import/export templates
+
+### 3.3 Task List View
 - [ ] Display all tasks with status indicators
-- [ ] Show next run time and last run status
-- [ ] Quick actions: run, edit, enable/disable, delete
-- [ ] Search and filter functionality
+- [ ] Show template name, next run, last status
+- [ ] Quick actions: run, edit params, enable/disable, delete
+- [ ] Search and filter by template, status
 - [ ] Bulk operations (delete, enable/disable)
 
-### 3.3 Task Editor
-- [ ] Integrate Monaco Editor for code editing
-- [ ] Syntax highlighting for JavaScript/TypeScript
+### 3.4 Task Configuration
+- [ ] Template selector (from available templates)
+- [ ] Parameter form (generated from template schema)
 - [ ] Schedule configuration UI
   - Cron expression builder
   - One-time datetime picker
   - Interval selector
-- [ ] Credential assignment UI
-- [ ] Task template selector
+- [ ] Additional credential assignment
 - [ ] Validation before save
 
-### 3.4 Execution Logs
+### 3.5 Execution Logs
 - [ ] Execution history table with filtering
 - [ ] Detailed execution view
   - Console output display
@@ -138,12 +156,12 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] Real-time log streaming for running tasks
 - [ ] Export logs functionality
 
-### 3.5 Credential Manager
+### 3.6 Credential Manager
 - [ ] Credential list with masked values
 - [ ] Add new credential form
 - [ ] Edit credential (re-enter value)
 - [ ] Delete with usage warning
-- [ ] Credential usage overview
+- [ ] Credential usage overview (which templates/tasks use it)
 
 ---
 
@@ -162,12 +180,13 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] Notification preferences
 - [ ] Optional sound alerts
 
-### 4.3 Task Templates
+### 4.3 Built-in Templates
 - [ ] HTTP Health Check template
 - [ ] GitHub PR Creation template
 - [ ] Slack/Discord notification template
 - [ ] Database backup template
-- [ ] Custom template creation
+- [ ] Webhook trigger template
+- [ ] File watcher template
 
 ### 4.4 Import/Export
 - [ ] Export tasks as JSON
@@ -241,10 +260,10 @@ The following are explicitly out of scope:
 - **User accounts/authentication**: Local-first, single user
 - **Cloud sync**: All data stays local
 - **Built-in AI chat**: MCP-only interface; use external clients
+- **Arbitrary code via MCP**: MCP can only use existing templates; template authoring is UI-only
 - **Multi-user collaboration**: Single machine, single user
 - **Mobile apps**: Desktop only
 - **Remote execution**: Tasks run only on local machine
-- **Sandboxed execution**: Users control their own code
 
 ---
 
