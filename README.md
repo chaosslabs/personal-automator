@@ -30,7 +30,7 @@ Personal Automator is designed for developers who want to automate repetitive ta
 │                    Personal Automator                            │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐  │
 │  │ MCP Server  │──│  Scheduler  │──│  Execution Engine       │  │
-│  │             │  │  (node-cron)│  │  (vm2 sandbox)          │  │
+│  │             │  │  (node-cron)│  │  (Node.js)              │  │
 │  └─────────────┘  └─────────────┘  └─────────────────────────┘  │
 │         │                │                     │                 │
 │         ▼                ▼                     ▼                 │
@@ -127,7 +127,7 @@ personal-automator/
 │   │   ├── index.ts          # Application entry point
 │   │   ├── mcp-server.ts     # MCP server implementation
 │   │   ├── scheduler.ts      # Task scheduling (node-cron)
-│   │   ├── executor.ts       # Sandboxed execution (vm2)
+│   │   ├── executor.ts       # Task execution engine
 │   │   ├── credentials.ts    # Credential vault
 │   │   └── database.ts       # SQLite operations
 │   ├── renderer/             # Electron renderer (React UI)

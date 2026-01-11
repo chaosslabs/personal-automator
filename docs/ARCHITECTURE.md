@@ -278,7 +278,7 @@ Scheduler              Executor              Credential Vault           Database
     │                      │  INSERT execution (running)                   │
     │                      │───────────────────────────────────────────────>│
     │                      │                        │                      │
-    │                      │  run in vm2 sandbox    │                      │
+    │                      │  execute task code     │                      │
     │                      │  ...                   │                      │
     │                      │                        │                      │
     │                      │  UPDATE execution (result)                    │
@@ -313,7 +313,7 @@ personal-automator/
 │   │   ├── index.ts               # App entry, window management
 │   │   ├── mcp-server.ts          # MCP server implementation
 │   │   ├── scheduler.ts           # Task scheduling service
-│   │   ├── executor.ts            # Sandboxed execution engine
+│   │   ├── executor.ts            # Task execution engine
 │   │   ├── credentials.ts         # Credential vault service
 │   │   ├── database.ts            # SQLite database service
 │   │   ├── ipc-handlers.ts        # IPC handlers for renderer
@@ -386,7 +386,7 @@ Planned architecture for extending executor capabilities:
 interface ExecutorPlugin {
   name: string;
   version: string;
-  apis: Record<string, Function>;  // APIs to inject into sandbox
+  apis: Record<string, Function>;  // APIs to expose to tasks
   setup?: () => Promise<void>;
   teardown?: () => Promise<void>;
 }
