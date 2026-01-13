@@ -1,0 +1,102 @@
+import { useState, useEffect } from 'react';
+
+type View = 'tasks' | 'templates' | 'executions' | 'credentials';
+
+function App() {
+  const [currentView, setCurrentView] = useState<View>('tasks');
+  const [appVersion, setAppVersion] = useState<string>('');
+  const [platform, setPlatform] = useState<string>('');
+
+  useEffect(() => {
+    // Get app info on mount
+    const loadAppInfo = async () => {
+      try {
+        const version = await window.electronAPI.system.getAppVersion();
+        setAppVersion(version);
+        setPlatform(window.electronAPI.system.getPlatform());
+      } catch (error) {
+        console.error('Failed to load app info:', error);
+      }
+    };
+    void loadAppInfo();
+  }, []);
+
+  return (
+    <div className="app">
+      <nav className="sidebar">
+        <div className="sidebar-header">
+          <h1>Personal Automator</h1>
+          <span className="version">{appVersion}</span>
+        </div>
+
+        <ul className="nav-list">
+          <li>
+            <button
+              className={`nav-item ${currentView === 'tasks' ? 'active' : ''}`}
+              onClick={() => setCurrentView('tasks')}
+            >
+              Tasks
+            </button>
+          </li>
+          <li>
+            <button
+              className={`nav-item ${currentView === 'templates' ? 'active' : ''}`}
+              onClick={() => setCurrentView('templates')}
+            >
+              Templates
+            </button>
+          </li>
+          <li>
+            <button
+              className={`nav-item ${currentView === 'executions' ? 'active' : ''}`}
+              onClick={() => setCurrentView('executions')}
+            >
+              Executions
+            </button>
+          </li>
+          <li>
+            <button
+              className={`nav-item ${currentView === 'credentials' ? 'active' : ''}`}
+              onClick={() => setCurrentView('credentials')}
+            >
+              Credentials
+            </button>
+          </li>
+        </ul>
+
+        <div className="sidebar-footer">
+          <span className="platform">{platform}</span>
+        </div>
+      </nav>
+
+      <main className="content">
+        {currentView === 'tasks' && (
+          <div className="view">
+            <h2>Tasks</h2>
+            <p className="placeholder">Task list will be implemented in Phase 3.</p>
+          </div>
+        )}
+        {currentView === 'templates' && (
+          <div className="view">
+            <h2>Templates</h2>
+            <p className="placeholder">Template editor will be implemented in Phase 3.</p>
+          </div>
+        )}
+        {currentView === 'executions' && (
+          <div className="view">
+            <h2>Execution History</h2>
+            <p className="placeholder">Execution logs will be implemented in Phase 3.</p>
+          </div>
+        )}
+        {currentView === 'credentials' && (
+          <div className="view">
+            <h2>Credential Vault</h2>
+            <p className="placeholder">Credential manager will be implemented in Phase 3.</p>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+}
+
+export default App;
