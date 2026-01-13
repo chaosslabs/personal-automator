@@ -78,6 +78,9 @@ export type CredentialType = 'api_key' | 'oauth_token' | 'env_var' | 'secret';
 
 // System types
 export interface SystemStatus {
+  status: string;
+  version: string;
+  uptime: number;
   schedulerRunning: boolean;
   databaseConnected: boolean;
   tasksCount: number;
@@ -102,32 +105,15 @@ export interface TaskFilters {
   templateId?: string;
 }
 
-// IPC channel types
-export type IpcChannel =
-  | 'templates:list'
-  | 'templates:get'
-  | 'templates:create'
-  | 'templates:update'
-  | 'templates:delete'
-  | 'tasks:list'
-  | 'tasks:get'
-  | 'tasks:create'
-  | 'tasks:update'
-  | 'tasks:delete'
-  | 'tasks:toggle'
-  | 'tasks:execute'
-  | 'executions:list'
-  | 'executions:get'
-  | 'credentials:list'
-  | 'credentials:add'
-  | 'credentials:delete'
-  | 'system:status'
-  | 'system:version';
+// API Response types
+export interface ApiResponse<T> {
+  data: T;
+  error?: string;
+}
 
-// Event channel types
-export type EventChannel =
-  | 'execution:started'
-  | 'execution:completed'
-  | 'execution:failed'
-  | 'task:scheduled'
-  | 'task:unscheduled';
+export interface PaginatedResponse<T> {
+  data: T[];
+  total: number;
+  limit: number;
+  offset: number;
+}

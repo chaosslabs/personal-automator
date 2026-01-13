@@ -138,9 +138,8 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
-# Electron
-dist-electron/
-release/
+# Build output
+dist/
 
 # Database
 *.db

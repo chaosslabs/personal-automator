@@ -1,13 +1,13 @@
 # Architecture
 
-Personal Automator is a local-first Electron application that provides task automation capabilities exclusively through MCP (Model Context Protocol).
+Personal Automator is a local-first Node.js web application that provides task automation capabilities exclusively through MCP (Model Context Protocol).
 
 ## Design Principles
 
 1. **Local-First**: All data stays on the user's machine. No cloud services, no accounts, no telemetry.
 2. **MCP-Only Interface**: All automation capabilities are exposed through MCP tools. No built-in AI assistant.
-3. **Template-Based Execution**: Tasks run from predefined templates only. MCP cannot execute arbitrary code—templates are authored through the desktop UI.
-4. **Secure Credentials**: Encrypted credential storage using OS keychain.
+3. **Template-Based Execution**: Tasks run from predefined templates only. MCP cannot execute arbitrary code—templates are authored through the web UI.
+4. **Secure Credentials**: Encrypted credential storage.
 5. **Developer-Friendly**: JavaScript-based templates, familiar tooling, transparent operation.
 
 ## System Overview
@@ -39,7 +39,7 @@ Personal Automator is a local-first Electron application that provides task auto
 │  │                                                                      │ │
 │  │  ┌──────────────────┐  ┌──────────────────┐  ┌───────────────────┐  │ │
 │  │  │    Scheduler     │  │    Executor      │  │  Credential Vault │  │ │
-│  │  │    (node-cron)   │  │    (Node.js)     │  │  (keytar + AES)   │  │ │
+│  │  │    (node-cron)   │  │    (Node.js)     │  │  (AES-256)        │  │ │
 │  │  │                  │  │                  │  │                   │  │ │
 │  │  │ - Cron parsing   │  │ - Code execution │  │ - Key derivation  │  │ │
 │  │  │ - Job management │  │ - Async handling │  │ - Encryption      │  │ │
@@ -62,15 +62,15 @@ Personal Automator is a local-first Electron application that provides task auto
 │  │  │  └─ ...         ├─ schedule      ├─ output      └─ last_used │    │ │
 │  │  │                 └─ enabled       └─ error                    │    │ │
 │  │  └─────────────────────────────────────────────────────────────┘    │ │
-│  │                                                                      │ │
-│  │  ┌─────────────────────────────────────────────────────────────┐    │ │
-│  │  │                    OS Keychain                               │    │ │
-│  │  │         (credential values, master encryption key)           │    │ │
-│  │  └─────────────────────────────────────────────────────────────┘    │ │
 │  └─────────────────────────────────────────────────────────────────────┘ │
 │                                                                           │
 │  ┌─────────────────────────────────────────────────────────────────────┐ │
-│  │                        UI Layer (Electron Renderer)                  │ │
+│  │                        Web Layer (Express + React)                   │ │
+│  │                                                                      │ │
+│  │  ┌───────────────────────────────────────────────────────────────┐  │ │
+│  │  │                Express REST API (localhost:3000)               │  │ │
+│  │  │  /api/status  /api/templates  /api/tasks  /api/executions      │  │ │
+│  │  └───────────────────────────────────────────────────────────────┘  │ │
 │  │                                                                      │ │
 │  │  ┌───────────┐ ┌───────────┐ ┌───────────┐ ┌───────────────────┐   │ │
 │  │  │ Task List │ │ Template  │ │ Execution │ │ Credential        │   │ │
@@ -82,7 +82,7 @@ Personal Automator is a local-first Electron application that provides task auto
 
 ## Component Details
 
-### MCP Server (`src/main/mcp-server.ts`)
+### MCP Server (`src/server/mcp-server.ts`)
 
 The MCP server is the primary interface for external clients. It implements the Model Context Protocol specification and exposes all automation capabilities as tools.
 
@@ -96,7 +96,7 @@ The MCP server is the primary interface for external clients. It implements the 
 - **stdio** (primary): For local Claude Desktop integration
 - **SSE** (future): For browser-based MCP clients
 
-### Scheduler (`src/main/scheduler.ts`)
+### Scheduler (`src/server/scheduler.ts`)
 
 Manages task scheduling using node-cron for recurring tasks and setTimeout for one-time tasks.
 
@@ -104,7 +104,7 @@ Manages task scheduling using node-cron for recurring tasks and setTimeout for o
 - Parse and validate cron expressions
 - Calculate next run times
 - Manage job lifecycle (create, pause, resume, delete)
-- Handle missed executions (e.g., app was closed)
+- Handle missed executions (e.g., server was stopped)
 - Implement retry logic for failed tasks
 
 **Schedule Types:**
@@ -115,7 +115,7 @@ type Schedule =
   | { type: 'interval'; minutes: number };     // Simple interval
 ```
 
-### Executor (`src/main/executor.ts`)
+### Executor (`src/server/executor.ts`)
 
 Runs template code with task parameters in Node.js.
 
@@ -145,26 +145,26 @@ const context = {
 | Timeout | 5min | Max execution time before kill |
 | Console capture | 1MB | Max logged output size |
 
-### Credential Vault (`src/main/credentials.ts`)
+### Credential Vault (`src/server/credentials.ts`)
 
 Securely stores and manages API keys and secrets.
 
 **Responsibilities:**
-- Derive encryption key from OS keychain
+- Derive encryption key
 - Encrypt/decrypt credential values (AES-256-GCM)
 - Inject credentials into execution context
 - Track credential usage
 
 **Storage Model:**
 - **SQLite**: Credential metadata (name, type, created_at)
-- **OS Keychain**: Encrypted credential values
+- **Encrypted file**: Credential values
 
 **No credential value is ever:**
 - Logged to console or files
-- Returned in MCP responses
+- Returned in API responses
 - Stored in plain text
 
-### Database (`src/main/database.ts`)
+### Database (`src/server/database.ts`)
 
 SQLite database for persistent storage using better-sqlite3.
 
@@ -234,7 +234,24 @@ CREATE INDEX idx_tasks_next_run ON tasks(next_run_at) WHERE enabled = 1;
 CREATE INDEX idx_tasks_template_id ON tasks(template_id);
 ```
 
-### UI Layer (`src/renderer/`)
+### Web Server (`src/server/index.ts`)
+
+Express-based web server providing the REST API and serving the React UI.
+
+**API Endpoints:**
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/status` | GET | Server status and health |
+| `/api/templates` | GET | List all templates |
+| `/api/templates/:id` | GET/PUT/DELETE | Template CRUD |
+| `/api/tasks` | GET/POST | List/create tasks |
+| `/api/tasks/:id` | GET/PUT/DELETE | Task CRUD |
+| `/api/tasks/:id/execute` | POST | Execute task immediately |
+| `/api/executions` | GET | List execution history |
+| `/api/credentials` | GET/POST | List/create credentials |
+
+### UI Layer (`src/client/`)
 
 React-based UI for task and template management. The UI provides template authoring capabilities not available via MCP.
 
@@ -252,9 +269,6 @@ React-based UI for task and template management. The UI provides template author
 - Template creation and editing (MCP can only use existing templates)
 - Template deletion
 - Built-in template management
-
-**IPC Communication:**
-The renderer communicates with the main process via Electron IPC, not MCP. This provides a direct, low-latency interface for the UI.
 
 ## Data Flow
 
@@ -322,41 +336,36 @@ Scheduler              Executor              Credential Vault           Database
 
 | Component | Technology | Rationale |
 |-----------|------------|-----------|
-| Runtime | Electron 28+ | Cross-platform desktop, Node.js access |
+| Runtime | Node.js 20+ | Modern JS runtime with native fetch |
+| Web Server | Express | Simple, mature, well-documented |
 | UI Framework | React 18 | Component-based, large ecosystem |
 | Language | TypeScript | Type safety, better tooling |
 | Database | better-sqlite3 | Synchronous API, no server needed |
 | Scheduler | node-cron | Mature, reliable cron implementation |
 | MCP | @modelcontextprotocol/sdk | Official MCP implementation |
 | Encryption | Node.js crypto | AES-256-GCM |
-| Keychain | keytar | Cross-platform OS keychain access |
-| Code Editor | Monaco Editor | VS Code experience |
-| Build | Vite | Fast builds, good Electron support |
-| Packaging | electron-builder | Cross-platform distribution |
+| Build | Vite | Fast builds, great DX |
 
 ## File Structure
 
 ```
 personal-automator/
 ├── src/
-│   ├── main/                      # Electron main process
-│   │   ├── index.ts               # App entry, window management
-│   │   ├── mcp-server.ts          # MCP server implementation
-│   │   ├── scheduler.ts           # Task scheduling service
-│   │   ├── executor.ts            # Task execution engine
-│   │   ├── credentials.ts         # Credential vault service
-│   │   ├── database.ts            # SQLite database service
-│   │   ├── ipc-handlers.ts        # IPC handlers for renderer
-│   │   └── preload.ts             # Preload script for renderer
+│   ├── server/                   # Node.js server
+│   │   ├── index.ts              # Express app entry
+│   │   ├── mcp-server.ts         # MCP server implementation
+│   │   ├── scheduler.ts          # Task scheduling service
+│   │   ├── executor.ts           # Task execution engine
+│   │   ├── credentials.ts        # Credential vault service
+│   │   └── database.ts           # SQLite database service
 │   │
-│   ├── renderer/                  # Electron renderer (React)
-│   │   ├── index.html
-│   │   ├── main.tsx               # React entry point
-│   │   ├── App.tsx                # Root component
+│   ├── client/                   # React web UI
+│   │   ├── main.tsx              # React entry point
+│   │   ├── App.tsx               # Root component
 │   │   ├── components/
 │   │   │   ├── TaskList.tsx
 │   │   │   ├── TemplateList.tsx
-│   │   │   ├── TemplateEditor.tsx # Monaco editor for templates
+│   │   │   ├── TemplateEditor.tsx
 │   │   │   ├── ExecutionLog.tsx
 │   │   │   ├── CredentialVault.tsx
 │   │   │   └── common/
@@ -365,26 +374,24 @@ personal-automator/
 │   │   │   ├── useTasks.ts
 │   │   │   ├── useExecutions.ts
 │   │   │   └── useCredentials.ts
-│   │   ├── stores/                # State management
+│   │   ├── stores/               # State management
 │   │   └── styles/
 │   │
-│   └── shared/                    # Shared between main/renderer
-│       ├── types.ts               # TypeScript interfaces
-│       ├── constants.ts           # Shared constants
-│       ├── builtin-templates.ts   # Built-in task templates
-│       └── validation.ts          # Input validation schemas
+│   └── shared/                   # Shared between server/client
+│       ├── types.ts              # TypeScript interfaces
+│       ├── constants.ts          # Shared constants
+│       └── validation.ts         # Input validation schemas
 │
-├── docs/                          # Documentation
-├── tests/                         # Test files
+├── docs/                         # Documentation
+├── tests/                        # Test files
 │   ├── unit/
 │   ├── integration/
 │   └── e2e/
-├── scripts/                       # Build/dev scripts
-├── resources/                     # App icons, assets
+├── scripts/                      # Build/dev scripts
 ├── package.json
 ├── tsconfig.json
+├── tsconfig.server.json
 ├── vite.config.ts
-├── electron-builder.yml
 └── README.md
 ```
 

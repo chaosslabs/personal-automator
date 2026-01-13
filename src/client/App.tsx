@@ -1,24 +1,29 @@
 import { useState, useEffect } from 'react';
+import './styles/index.css';
 
 type View = 'tasks' | 'templates' | 'executions' | 'credentials';
 
+interface ServerStatus {
+  status: string;
+  version: string;
+  uptime: number;
+}
+
 function App() {
   const [currentView, setCurrentView] = useState<View>('tasks');
-  const [appVersion, setAppVersion] = useState<string>('');
-  const [platform, setPlatform] = useState<string>('');
+  const [serverStatus, setServerStatus] = useState<ServerStatus | null>(null);
 
   useEffect(() => {
-    // Get app info on mount
-    const loadAppInfo = async () => {
+    const loadServerStatus = async () => {
       try {
-        const version = await window.electronAPI.system.getAppVersion();
-        setAppVersion(version);
-        setPlatform(window.electronAPI.system.getPlatform());
+        const response = await fetch('/api/status');
+        const data = (await response.json()) as ServerStatus;
+        setServerStatus(data);
       } catch (error) {
-        console.error('Failed to load app info:', error);
+        console.error('Failed to load server status:', error);
       }
     };
-    void loadAppInfo();
+    void loadServerStatus();
   }, []);
 
   return (
@@ -26,7 +31,7 @@ function App() {
       <nav className="sidebar">
         <div className="sidebar-header">
           <h1>Personal Automator</h1>
-          <span className="version">{appVersion}</span>
+          <span className="version">{serverStatus?.version ?? ''}</span>
         </div>
 
         <ul className="nav-list">
@@ -65,7 +70,9 @@ function App() {
         </ul>
 
         <div className="sidebar-footer">
-          <span className="platform">{platform}</span>
+          <span className="status">
+            {serverStatus?.status === 'ok' ? 'Connected' : 'Disconnected'}
+          </span>
         </div>
       </nav>
 

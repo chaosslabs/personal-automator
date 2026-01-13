@@ -1,6 +1,9 @@
 // Application constants
 export const APP_NAME = 'Personal Automator';
 
+// Server
+export const DEFAULT_PORT = 3000;
+
 // Execution limits
 export const DEFAULT_EXECUTION_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
 export const MAX_EXECUTION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
@@ -12,11 +15,6 @@ export const MAX_PAGE_SIZE = 500;
 
 // Database
 export const DATABASE_FILENAME = 'personal-automator.db';
-
-// Keychain
-export const KEYCHAIN_SERVICE = 'personal-automator';
-export const KEYCHAIN_ACCOUNT_PREFIX = 'credential:';
-export const MASTER_KEY_ACCOUNT = 'master-key';
 
 // Credential types
 export const CREDENTIAL_TYPES = ['api_key', 'oauth_token', 'env_var', 'secret'] as const;
@@ -37,48 +35,32 @@ export const TEMPLATE_CATEGORIES = [
 // Execution statuses
 export const EXECUTION_STATUSES = ['running', 'success', 'failed', 'timeout'] as const;
 
-// IPC channels - keep in sync with types.ts
-export const IPC_CHANNELS = {
+// API routes
+export const API_ROUTES = {
+  status: '/api/status',
   templates: {
-    list: 'templates:list',
-    get: 'templates:get',
-    create: 'templates:create',
-    update: 'templates:update',
-    delete: 'templates:delete',
+    list: '/api/templates',
+    get: (id: string) => `/api/templates/${id}`,
+    create: '/api/templates',
+    update: (id: string) => `/api/templates/${id}`,
+    delete: (id: string) => `/api/templates/${id}`,
   },
   tasks: {
-    list: 'tasks:list',
-    get: 'tasks:get',
-    create: 'tasks:create',
-    update: 'tasks:update',
-    delete: 'tasks:delete',
-    toggle: 'tasks:toggle',
-    execute: 'tasks:execute',
+    list: '/api/tasks',
+    get: (id: number) => `/api/tasks/${id}`,
+    create: '/api/tasks',
+    update: (id: number) => `/api/tasks/${id}`,
+    delete: (id: number) => `/api/tasks/${id}`,
+    toggle: (id: number) => `/api/tasks/${id}/toggle`,
+    execute: (id: number) => `/api/tasks/${id}/execute`,
   },
   executions: {
-    list: 'executions:list',
-    get: 'executions:get',
+    list: '/api/executions',
+    get: (id: number) => `/api/executions/${id}`,
   },
   credentials: {
-    list: 'credentials:list',
-    add: 'credentials:add',
-    delete: 'credentials:delete',
-  },
-  system: {
-    status: 'system:status',
-    version: 'system:version',
-  },
-} as const;
-
-// Event channels
-export const EVENT_CHANNELS = {
-  execution: {
-    started: 'execution:started',
-    completed: 'execution:completed',
-    failed: 'execution:failed',
-  },
-  task: {
-    scheduled: 'task:scheduled',
-    unscheduled: 'task:unscheduled',
+    list: '/api/credentials',
+    create: '/api/credentials',
+    delete: (id: number) => `/api/credentials/${id}`,
   },
 } as const;

@@ -14,7 +14,7 @@ module.exports = {
     'plugin:react-hooks/recommended',
     'prettier',
   ],
-  ignorePatterns: ['dist', 'dist-electron', 'node_modules', '*.cjs'],
+  ignorePatterns: ['dist', 'node_modules', '*.cjs'],
   parser: '@typescript-eslint/parser',
   parserOptions: {
     ecmaVersion: 'latest',
@@ -55,10 +55,10 @@ module.exports = {
   },
   overrides: [
     {
-      // Electron main process files
-      files: ['src/main/**/*.ts'],
+      // Server files
+      files: ['src/server/**/*.ts'],
       rules: {
-        'no-console': 'off', // Console logging is expected in main process
+        'no-console': 'off', // Console logging is expected in server
       },
     },
     {
