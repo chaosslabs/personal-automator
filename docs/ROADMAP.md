@@ -7,11 +7,10 @@ Development roadmap for Personal Automator organized into phases with clear mile
 **Goal**: Core infrastructure and basic task management
 
 ### 1.1 Project Setup
-- [ ] Initialize Electron + Vite + React project structure
-- [ ] Configure TypeScript with strict mode
-- [ ] Set up ESLint and Prettier
-- [ ] Create development and build scripts
-- [ ] Configure electron-builder for packaging
+- [x] Initialize Express + Vite + React project structure
+- [x] Configure TypeScript with strict mode
+- [x] Set up ESLint and Prettier
+- [x] Create development and build scripts
 
 ### 1.2 Database Layer
 - [ ] Integrate better-sqlite3
@@ -24,7 +23,7 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] Seed built-in templates on first launch
 
 ### 1.3 Credential Vault
-- [ ] Integrate keytar for OS keychain access
+- [ ] Implement secure master key storage
 - [ ] Implement master key derivation
 - [ ] Create AES-256-GCM encryption/decryption utilities
 - [ ] Build credential CRUD operations
@@ -111,12 +110,12 @@ Development roadmap for Personal Automator organized into phases with clear mile
 
 ## Phase 3: User Interface
 
-**Goal**: Electron renderer with full task and template management
+**Goal**: React web UI with full task and template management
 
 ### 3.1 Application Shell
-- [ ] Create main window with navigation
+- [ ] Create main layout with navigation
 - [ ] Implement dark/light theme support
-- [ ] Set up IPC communication with main process
+- [ ] Set up API client for server communication
 - [ ] Create loading and error states
 
 ### 3.2 Template Management (UI-only features)
@@ -194,11 +193,10 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] Backup/restore entire configuration
 
 ### 4.5 Distribution
-- [ ] Code signing setup (macOS, Windows)
-- [ ] Auto-update mechanism
-- [ ] macOS DMG packaging
-- [ ] Windows NSIS installer
-- [ ] Linux AppImage/deb/rpm
+- [ ] Docker container image
+- [ ] systemd service file for Linux
+- [ ] npm package publishing
+- [ ] Installation documentation
 
 ### 4.6 Documentation
 - [ ] User guide
@@ -262,7 +260,6 @@ The following are explicitly out of scope:
 - **Built-in AI chat**: MCP-only interface; use external clients
 - **Arbitrary code via MCP**: MCP can only use existing templates; template authoring is UI-only
 - **Multi-user collaboration**: Single machine, single user
-- **Mobile apps**: Desktop only
 - **Remote execution**: Tasks run only on local machine
 
 ---

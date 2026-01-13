@@ -6,15 +6,15 @@ Personal Automator is designed as a local-first, single-user application. This d
 
 ### What Personal Automator Trusts
 
-1. **The User**: You have full control over template code through the desktop UI. Templates run with full Node.js capabilities.
+1. **The User**: You have full control over template code through the web UI. Templates run with full Node.js capabilities.
 
 2. **The Local Machine**: All data is stored locally. The application trusts the security of the host operating system.
 
-3. **Templates Created via UI**: Template code is authored and reviewed through the desktop UI before it can be used.
+3. **Templates Created via UI**: Template code is authored and reviewed through the web UI before it can be used.
 
 ### What Personal Automator Protects
 
-1. **Credentials at Rest**: API keys and secrets are encrypted using AES-256-GCM with keys derived from the OS keychain.
+1. **Credentials at Rest**: API keys and secrets are encrypted using AES-256-GCM.
 
 2. **Credential Values in Transit**: Credential values are never returned in API responses or logged.
 
@@ -28,15 +28,9 @@ Personal Automator is designed as a local-first, single-user application. This d
 
 ### Encryption
 
-Credentials are encrypted using a two-layer approach:
+Credentials are encrypted using a secure approach:
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  OS Keychain                         │
-│         (Master Key - never leaves keychain)         │
-└─────────────────────────┬───────────────────────────┘
-                          │
-                          ▼
 ┌─────────────────────────────────────────────────────┐
 │                 Key Derivation                       │
 │    PBKDF2(master_key, app_salt, 100000 iterations)  │
@@ -51,7 +45,7 @@ Credentials are encrypted using a two-layer approach:
 
 **Implementation Details:**
 
-- **Master Key Storage**: Stored in OS keychain (Keychain on macOS, Credential Manager on Windows, libsecret on Linux)
+- **Master Key Storage**: Stored in a secure location on disk
 - **Key Derivation**: PBKDF2 with SHA-256, 100,000 iterations
 - **Encryption**: AES-256-GCM with random 12-byte IV per credential
 - **Authentication**: GCM provides authenticated encryption
@@ -114,7 +108,7 @@ MCP tools can:
 
 ### Template-Based Execution
 
-Tasks execute template code that was authored and reviewed through the desktop UI. This provides a security boundary:
+Tasks execute template code that was authored and reviewed through the web UI. This provides a security boundary:
 
 - **MCP clients can only use existing templates** - no arbitrary code execution
 - **Templates are reviewed before use** - you see and approve the code
@@ -160,7 +154,7 @@ All data is stored locally:
 | Data | Location | Protection |
 |------|----------|------------|
 | Database | `~/.personal-automator/data.db` | File permissions |
-| Credentials | Database (encrypted) + OS keychain | AES-256-GCM |
+| Credentials | Database (encrypted) | AES-256-GCM |
 | Logs | Database | File permissions |
 | Config | `~/.personal-automator/config.json` | File permissions |
 
@@ -177,8 +171,8 @@ The SQLite database itself is not encrypted. Sensitive data protection relies on
 When backing up Personal Automator data:
 
 - Database contains encrypted credentials (safe to backup)
-- Master key in OS keychain must be available to decrypt
-- Recommend backing up both database AND exporting keychain entry
+- Master key file must be available to decrypt
+- Recommend backing up both database AND master key file
 
 ---
 

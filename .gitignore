@@ -137,3 +137,16 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Build output
+dist/
+
+# Database
+*.db
+*.db-journal
+
+# IDE
+.idea/
+*.swp
+*.swo
+.DS_Store

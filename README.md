@@ -4,21 +4,21 @@ A local-first task automation engine that exposes scheduling and execution capab
 
 ## Overview
 
-Personal Automator is designed for developers who want to automate repetitive tasks without deploying to external services. It runs as a local Electron application with an MCP server that any MCP-compatible client (like Claude Desktop) can connect to.
+Personal Automator is designed for developers who want to automate repetitive tasks without deploying to external services. It runs as a local Node.js web server with an MCP server that any MCP-compatible client (like Claude Desktop) can connect to.
 
 **Key Design Decisions**:
 - **MCP-Only Interface**: All automation capabilities exposed through MCP tools. No built-in AI assistant.
-- **Template-Based Execution**: Tasks run from predefined templates only—no arbitrary code execution via MCP. Templates are authored and reviewed through the desktop UI.
+- **Template-Based Execution**: Tasks run from predefined templates only—no arbitrary code execution via MCP. Templates are authored and reviewed through the web UI.
 
 ## Features
 
 - **Template-Based Tasks**: Schedule tasks from curated, reviewed templates
 - **Task Scheduling**: One-time or recurring tasks using cron expressions
-- **Secure Credential Vault**: AES-256 encrypted storage using OS keychain
+- **Secure Credential Vault**: AES-256 encrypted storage
 - **MCP Server**: Full API exposed via Model Context Protocol
 - **Execution History**: Complete logs and analytics for all task runs
 - **Local-First**: No accounts, no cloud—everything runs on your machine
-- **Template Authoring**: Create custom templates via the desktop UI (use Claude to help generate code)
+- **Template Authoring**: Create custom templates via the web UI (use Claude to help generate code)
 
 ## Architecture
 
@@ -41,10 +41,10 @@ Personal Automator is designed for developers who want to automate repetitive ta
 │  │                    SQLite Database                          ││
 │  │  (tasks, executions, credentials metadata)                  ││
 │  └─────────────────────────────────────────────────────────────┘│
-│         │                                                        │
-│         ▼                                                        │
+│                                                                  │
 │  ┌─────────────────────────────────────────────────────────────┐│
-│  │              OS Keychain (credential values)                ││
+│  │              Express Web Server + React UI                  ││
+│  │              (http://localhost:3000)                        ││
 │  └─────────────────────────────────────────────────────────────┘│
 └─────────────────────────────────────────────────────────────────┘
 ```
@@ -90,6 +90,8 @@ npm install
 npm run dev
 ```
 
+The web UI will be available at `http://localhost:5173` (dev) or `http://localhost:3000` (production).
+
 ### Connecting an MCP Client
 
 Add to your Claude Desktop configuration (`~/.config/claude/claude_desktop_config.json`):
@@ -99,7 +101,7 @@ Add to your Claude Desktop configuration (`~/.config/claude/claude_desktop_confi
   "mcpServers": {
     "personal-automator": {
       "command": "node",
-      "args": ["/path/to/personal-automator/dist/mcp-server.js"]
+      "args": ["/path/to/personal-automator/dist/server/mcp-server.js"]
     }
   }
 }
@@ -127,21 +129,21 @@ Claude will first call `list_templates` to find the appropriate template, then u
 }
 ```
 
-**Adding Custom Templates**: Use the desktop UI to create new templates. You can use Claude to help generate the template code, then paste it into the template editor for review before saving.
+**Adding Custom Templates**: Use the web UI to create new templates. You can use Claude to help generate the template code, then paste it into the template editor for review before saving.
 
 ## Project Structure
 
 ```
 personal-automator/
 ├── src/
-│   ├── main/                 # Electron main process
-│   │   ├── index.ts          # Application entry point
+│   ├── server/               # Express server (Node.js)
+│   │   ├── index.ts          # Server entry point
 │   │   ├── mcp-server.ts     # MCP server implementation
 │   │   ├── scheduler.ts      # Task scheduling (node-cron)
 │   │   ├── executor.ts       # Task execution engine
 │   │   ├── credentials.ts    # Credential vault
 │   │   └── database.ts       # SQLite operations
-│   ├── renderer/             # Electron renderer (React UI)
+│   ├── client/               # React web UI
 │   │   ├── components/
 │   │   │   ├── TaskList.tsx
 │   │   │   ├── TemplateEditor.tsx
@@ -150,7 +152,7 @@ personal-automator/
 │   │   └── App.tsx
 │   └── shared/
 │       ├── types.ts          # Shared TypeScript types
-│       └── templates.ts      # Built-in task templates
+│       └── constants.ts      # Shared constants
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── MCP_API.md
@@ -164,8 +166,8 @@ personal-automator/
 ## Security
 
 - **Template-Only Execution**: MCP can only run pre-approved templates—no arbitrary code injection
-- **Encrypted Credentials**: AES-256 encryption with keys derived from OS keychain
-- **No Network Exposure**: MCP server runs locally via stdio, not exposed to network
+- **Encrypted Credentials**: AES-256 encryption for sensitive data
+- **Local-Only Access**: Server binds to localhost by default
 - **Local-Only Data**: All data stored locally, never transmitted externally
 - **Reviewed Templates**: Templates are authored via UI, giving you full control over what code can run
 
@@ -174,8 +176,14 @@ See [docs/SECURITY.md](docs/SECURITY.md) for the complete security model.
 ## Development
 
 ```bash
-# Run in development mode
+# Run in development mode (server + client with hot reload)
 npm run dev
+
+# Run server only
+npm run dev:server
+
+# Run client only
+npm run dev:client
 
 # Run tests
 npm test
@@ -183,8 +191,8 @@ npm test
 # Build for production
 npm run build
 
-# Package for distribution
-npm run package
+# Start production server
+npm start
 ```
 
 ## Documentation
