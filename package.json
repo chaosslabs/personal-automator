@@ -1,5 +1,5 @@
 {
-  "name": "personal-automator",
+  "name": "io.chaosslabs.personal-automator",
   "version": "0.1.0",
   "description": "A local-first task automation engine with MCP interface",
   "author": "ChaossLabs",
