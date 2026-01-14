@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
-import { getDatabase, closeDatabase } from './database.js';
+import { getDatabase, closeDatabase } from './database/index.js';
 import type { TaskFilters, ExecutionFilters, ExecutionStatus } from '../shared/types.js';
 
 const __filename = fileURLToPath(import.meta.url);

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import { DatabaseService } from './database.js';
+import { DatabaseService } from './index.js';
 
 describe('DatabaseService', () => {
   let db: DatabaseService;
