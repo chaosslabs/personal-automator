@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { getDatabase, closeDatabase } from './database/index.js';
 import { getVault, closeVault } from './vault/index.js';
+import { getExecutor, closeExecutor } from './executor/index.js';
 import type {
   TaskFilters,
   ExecutionFilters,
@@ -79,6 +80,9 @@ console.log('Database initialized');
 
 const vault = getVault();
 console.log('Credential vault initialized');
+
+const executor = getExecutor(db, vault);
+console.log('Task executor initialized');
 
 // Middleware
 app.use(cors());
@@ -406,6 +410,69 @@ app.post('/api/tasks/:id/toggle', (req: Request, res: Response): void => {
   }
 });
 
+// Execute task endpoint
+app.post('/api/tasks/:id/execute', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const idParam = req.params['id'];
+    if (!idParam) {
+      res.status(400).json({ error: 'Task ID is required' });
+      return;
+    }
+
+    const taskId = parseInt(idParam, 10);
+
+    // Optional timeout from request body
+    const timeoutMs = req.body?.timeoutMs as number | undefined;
+
+    // Execute the task
+    const options = timeoutMs !== undefined ? { timeoutMs } : {};
+    const result = await executor.execute(taskId, options);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        executionId: result.execution.id,
+        status: result.execution.status,
+        output: result.output,
+        durationMs: result.execution.durationMs,
+      });
+    } else {
+      res.status(200).json({
+        success: false,
+        executionId: result.execution.id,
+        status: result.execution.status,
+        output: result.output,
+        error: result.error,
+        durationMs: result.execution.durationMs,
+      });
+    }
+  } catch (error) {
+    console.error('Error executing task:', error);
+    const message = error instanceof Error ? error.message : 'Failed to execute task';
+    res.status(500).json({ error: message });
+  }
+});
+
+// Pre-flight check endpoint
+app.get('/api/tasks/:id/preflight', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const idParam = req.params['id'];
+    if (!idParam) {
+      res.status(400).json({ error: 'Task ID is required' });
+      return;
+    }
+
+    const taskId = parseInt(idParam, 10);
+    const result = await executor.preflight(taskId);
+
+    res.json(result);
+  } catch (error) {
+    console.error('Error running preflight check:', error);
+    const message = error instanceof Error ? error.message : 'Failed to run preflight check';
+    res.status(500).json({ error: message });
+  }
+});
+
 // Execution routes
 app.get('/api/executions', (req: Request, res: Response): void => {
   try {
@@ -658,6 +725,8 @@ const shutdown = (): void => {
   console.log('Shutting down...');
   server.close(() => {
     console.log('HTTP server closed');
+    closeExecutor();
+    console.log('Executor closed');
     closeVault();
     console.log('Vault closed');
     closeDatabase();
