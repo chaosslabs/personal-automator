@@ -8,7 +8,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "outDir": "dist/server",
-    "rootDir": "src/server",
+    "rootDir": "src",
     "declaration": true,
 
     /* Strict mode */
@@ -26,5 +26,6 @@
       "@server/*": ["src/server/*"]
     }
   },
-  "include": ["src/server/**/*", "src/shared/**/*"]
+  "include": ["src/server/**/*", "src/shared/**/*"],
+  "exclude": ["**/*.test.ts"]
 }

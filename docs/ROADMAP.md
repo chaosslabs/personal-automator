@@ -13,21 +13,21 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [x] Create development and build scripts
 
 ### 1.2 Database Layer
-- [ ] Integrate better-sqlite3
-- [ ] Create schema migrations system
-- [ ] Implement templates table (CRUD operations)
-- [ ] Implement tasks table (references templates)
-- [ ] Implement executions table
-- [ ] Implement credentials metadata table
-- [ ] Add database initialization on first launch
-- [ ] Seed built-in templates on first launch
+- [x] Integrate better-sqlite3
+- [x] Create schema migrations system
+- [x] Implement templates table (CRUD operations)
+- [x] Implement tasks table (references templates)
+- [x] Implement executions table
+- [x] Implement credentials metadata table
+- [x] Add database initialization on first launch
+- [x] Seed built-in templates on first launch
 
 ### 1.3 Credential Vault
-- [ ] Implement secure master key storage
-- [ ] Implement master key derivation
-- [ ] Create AES-256-GCM encryption/decryption utilities
-- [ ] Build credential CRUD operations
-- [ ] Implement secure credential injection for tasks
+- [x] Implement secure master key storage
+- [x] Implement master key derivation
+- [x] Create AES-256-GCM encryption/decryption utilities
+- [x] Build credential CRUD operations
+- [x] Implement secure credential injection for tasks
 
 ### 1.4 Task Executor
 - [ ] Create execution engine (load template, inject params)

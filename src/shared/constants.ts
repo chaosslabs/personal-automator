@@ -62,5 +62,7 @@ export const API_ROUTES = {
     list: '/api/credentials',
     create: '/api/credentials',
     delete: (id: number) => `/api/credentials/${id}`,
+    updateValue: (name: string) => `/api/credentials/${name}/value`,
+    clearValue: (name: string) => `/api/credentials/${name}/value`,
   },
 } as const;
