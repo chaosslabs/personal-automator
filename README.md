@@ -201,6 +201,19 @@ npm start
 - [MCP API](docs/MCP_API.md) - Complete MCP tool specifications
 - [Roadmap](docs/ROADMAP.md) - Development phases and milestones
 - [Security](docs/SECURITY.md) - Security model and threat mitigation
+- [Railway Deployment](RAILWAY.md) - Automatic deployment to Railway
+
+## Deployment
+
+### Railway
+
+This project supports automatic deployment to Railway when changes are merged to the main branch. See [RAILWAY.md](RAILWAY.md) for complete setup instructions.
+
+Quick setup:
+1. Create a Railway project from this repository
+2. Get your Railway token and service ID
+3. Add `RAILWAY_TOKEN` and `RAILWAY_SERVICE_ID` as GitHub secrets
+4. Merges to `main` will automatically deploy
 
 ## License
 
