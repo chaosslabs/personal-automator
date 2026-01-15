@@ -218,8 +218,7 @@ export class TaskExecutor {
       };
     } catch (error) {
       // Determine error type and status
-      const isTimeout =
-        error instanceof ExecutionError && error.code === 'TIMEOUT';
+      const isTimeout = error instanceof ExecutionError && error.code === 'TIMEOUT';
       const status = isTimeout ? 'timeout' : 'failed';
 
       // Build error message
@@ -377,12 +376,7 @@ export class TaskExecutor {
       timeoutId = setTimeout(() => {
         if (!completed) {
           completed = true;
-          reject(
-            new ExecutionError(
-              `Execution timed out after ${timeoutMs}ms`,
-              'TIMEOUT'
-            )
-          );
+          reject(new ExecutionError(`Execution timed out after ${timeoutMs}ms`, 'TIMEOUT'));
         }
       }, timeoutMs);
 
@@ -408,13 +402,7 @@ export class TaskExecutor {
               if (timeoutId) clearTimeout(timeoutId);
               const errorMessage = error instanceof Error ? error.message : 'Execution failed';
               const errorCause = error instanceof Error ? error : undefined;
-              reject(
-                new ExecutionError(
-                  errorMessage,
-                  'EXECUTION_ERROR',
-                  errorCause
-                )
-              );
+              reject(new ExecutionError(errorMessage, 'EXECUTION_ERROR', errorCause));
             }
           });
       } catch (error) {
@@ -422,13 +410,7 @@ export class TaskExecutor {
           completed = true;
           if (timeoutId) clearTimeout(timeoutId);
           const err = error as Error;
-          reject(
-            new ExecutionError(
-              err.message || 'Execution failed',
-              'EXECUTION_ERROR',
-              err
-            )
-          );
+          reject(new ExecutionError(err.message || 'Execution failed', 'EXECUTION_ERROR', err));
         }
       }
     });
@@ -465,7 +447,9 @@ export class TaskExecutor {
 
     const safeRequire = ((id: string): unknown => {
       if (!allowedModules.has(id)) {
-        throw new Error(`Module '${id}' is not allowed. Allowed modules: ${[...allowedModules].join(', ')}`);
+        throw new Error(
+          `Module '${id}' is not allowed. Allowed modules: ${[...allowedModules].join(', ')}`
+        );
       }
       // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return originalRequire(id);

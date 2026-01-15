@@ -13,11 +13,14 @@ npm run typecheck
 # Linting
 npm run lint
 
+# Formatting
+npm run format:check
+
 # Tests
 npm test -- --run
 ```
 
-All three must pass before pushing code.
+All four must pass before pushing code. If formatting fails, run `npm run format` to fix it.
 
 ## Project Structure
 
@@ -35,6 +38,8 @@ All three must pass before pushing code.
 | `npm run build` | Build for production |
 | `npm run typecheck` | Run TypeScript type checking |
 | `npm run lint` | Run ESLint |
+| `npm run format:check` | Check code formatting |
+| `npm run format` | Fix code formatting |
 | `npm test` | Run tests in watch mode |
 | `npm test -- --run` | Run tests once |
 
