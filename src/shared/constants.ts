@@ -53,6 +53,7 @@ export const API_ROUTES = {
     delete: (id: number) => `/api/tasks/${id}`,
     toggle: (id: number) => `/api/tasks/${id}/toggle`,
     execute: (id: number) => `/api/tasks/${id}/execute`,
+    preflight: (id: number) => `/api/tasks/${id}/preflight`,
   },
   executions: {
     list: '/api/executions',
