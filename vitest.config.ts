@@ -6,7 +6,12 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    environment: 'jsdom',
+    // Use jsdom for client tests, node for server tests based on file path
+    environmentMatchGlobs: [
+      ['src/server/**/*.test.ts', 'node'],
+      ['src/client/**/*.test.{ts,tsx}', 'jsdom'],
+      ['**/*.test.tsx', 'jsdom'],
+    ],
     setupFiles: ['./tests/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'tests/**/*.test.{ts,tsx}'],
     exclude: ['node_modules', 'dist', 'dist-electron'],
