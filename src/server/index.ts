@@ -411,50 +411,52 @@ app.post('/api/tasks/:id/toggle', (req: Request, res: Response): void => {
 });
 
 // Execute task endpoint
-app.post('/api/tasks/:id/execute', async (req: Request, res: Response): Promise<void> => {
-  try {
-    const idParam = req.params['id'];
-    if (!idParam) {
-      res.status(400).json({ error: 'Task ID is required' });
-      return;
-    }
-
-    const taskId = parseInt(idParam, 10);
-
-    // Optional timeout from request body
-    const timeoutMs = req.body?.timeoutMs as number | undefined;
-
-    // Execute the task
-    const options = timeoutMs !== undefined ? { timeoutMs } : {};
-    const result = await executor.execute(taskId, options);
-
-    if (result.success) {
-      res.json({
-        success: true,
-        executionId: result.execution.id,
-        status: result.execution.status,
-        output: result.output,
-        durationMs: result.execution.durationMs,
-      });
-    } else {
-      res.status(200).json({
-        success: false,
-        executionId: result.execution.id,
-        status: result.execution.status,
-        output: result.output,
-        error: result.error,
-        durationMs: result.execution.durationMs,
-      });
-    }
-  } catch (error) {
-    console.error('Error executing task:', error);
-    const message = error instanceof Error ? error.message : 'Failed to execute task';
-    res.status(500).json({ error: message });
+app.post('/api/tasks/:id/execute', (req: Request, res: Response): void => {
+  const idParam = req.params['id'];
+  if (!idParam) {
+    res.status(400).json({ error: 'Task ID is required' });
+    return;
   }
+
+  const taskId = parseInt(idParam, 10);
+
+  // Optional timeout from request body (safely extract from typed body)
+  const body = req.body as Record<string, unknown> | undefined;
+  const timeoutMs = typeof body?.['timeoutMs'] === 'number' ? body['timeoutMs'] : undefined;
+
+  // Execute the task
+  const options = timeoutMs !== undefined ? { timeoutMs } : {};
+  executor
+    .execute(taskId, options)
+    .then((result) => {
+      if (result.success) {
+        res.json({
+          success: true,
+          executionId: result.execution.id,
+          status: result.execution.status,
+          output: result.output,
+          durationMs: result.execution.durationMs,
+        });
+      } else {
+        res.status(200).json({
+          success: false,
+          executionId: result.execution.id,
+          status: result.execution.status,
+          output: result.output,
+          error: result.error,
+          durationMs: result.execution.durationMs,
+        });
+      }
+    })
+    .catch((error: unknown) => {
+      console.error('Error executing task:', error);
+      const message = error instanceof Error ? error.message : 'Failed to execute task';
+      res.status(500).json({ error: message });
+    });
 });
 
 // Pre-flight check endpoint
-app.get('/api/tasks/:id/preflight', async (req: Request, res: Response): Promise<void> => {
+app.get('/api/tasks/:id/preflight', (req: Request, res: Response): void => {
   try {
     const idParam = req.params['id'];
     if (!idParam) {
@@ -463,7 +465,7 @@ app.get('/api/tasks/:id/preflight', async (req: Request, res: Response): Promise
     }
 
     const taskId = parseInt(idParam, 10);
-    const result = await executor.preflight(taskId);
+    const result = executor.preflight(taskId);
 
     res.json(result);
   } catch (error) {

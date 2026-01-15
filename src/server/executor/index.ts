@@ -388,7 +388,7 @@ export class TaskExecutor {
 
       // Execute the code
       try {
-        const resultPromise = runInContext(wrappedCode, context, {
+        const resultPromise: unknown = runInContext(wrappedCode, context, {
           timeout: timeoutMs,
           displayErrors: true,
         });
@@ -402,15 +402,17 @@ export class TaskExecutor {
               resolve(result);
             }
           })
-          .catch((error) => {
+          .catch((error: unknown) => {
             if (!completed) {
               completed = true;
               if (timeoutId) clearTimeout(timeoutId);
+              const errorMessage = error instanceof Error ? error.message : 'Execution failed';
+              const errorCause = error instanceof Error ? error : undefined;
               reject(
                 new ExecutionError(
-                  error.message || 'Execution failed',
+                  errorMessage,
                   'EXECUTION_ERROR',
-                  error
+                  errorCause
                 )
               );
             }
@@ -461,10 +463,11 @@ export class TaskExecutor {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const originalRequire = require;
 
-    const safeRequire = ((id: string) => {
+    const safeRequire = ((id: string): unknown => {
       if (!allowedModules.has(id)) {
         throw new Error(`Module '${id}' is not allowed. Allowed modules: ${[...allowedModules].join(', ')}`);
       }
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return originalRequire(id);
     }) as NodeRequire;
 
@@ -510,13 +513,13 @@ export class TaskExecutor {
   /**
    * Pre-flight check for task execution (validates without running)
    */
-  async preflight(taskId: number): Promise<{
+  preflight(taskId: number): {
     valid: boolean;
     task: Task | null;
     template: Template | null;
     errors: string[];
     warnings: string[];
-  }> {
+  } {
     const errors: string[] = [];
     const warnings: string[] = [];
 

@@ -592,7 +592,7 @@ describe('TaskExecutor', () => {
   });
 
   describe('preflight', () => {
-    it('should return valid preflight for valid task', async () => {
+    it('should return valid preflight for valid task', () => {
       const template = db.createTemplate({
         id: 'test-preflight',
         name: 'Test Preflight',
@@ -616,7 +616,7 @@ describe('TaskExecutor', () => {
         enabled: true,
       });
 
-      const result = await executor.preflight(task.id);
+      const result = executor.preflight(task.id);
 
       expect(result.valid).toBe(true);
       expect(result.task).not.toBeNull();
@@ -624,15 +624,15 @@ describe('TaskExecutor', () => {
       expect(result.errors.length).toBe(0);
     });
 
-    it('should detect missing task', async () => {
-      const result = await executor.preflight(99999);
+    it('should detect missing task', () => {
+      const result = executor.preflight(99999);
 
       expect(result.valid).toBe(false);
       expect(result.task).toBeNull();
       expect(result.errors).toContain('Task with ID 99999 not found');
     });
 
-    it('should detect missing credentials', async () => {
+    it('should detect missing credentials', () => {
       const template = db.createTemplate({
         id: 'test-preflight-creds',
         name: 'Test Preflight Creds',
@@ -656,13 +656,13 @@ describe('TaskExecutor', () => {
         enabled: true,
       });
 
-      const result = await executor.preflight(task.id);
+      const result = executor.preflight(task.id);
 
       expect(result.valid).toBe(false);
       expect(result.errors.some((e) => e.includes('MISSING_CRED'))).toBe(true);
     });
 
-    it('should warn for disabled task', async () => {
+    it('should warn for disabled task', () => {
       const template = db.createTemplate({
         id: 'test-preflight-disabled',
         name: 'Test Preflight Disabled',
@@ -686,7 +686,7 @@ describe('TaskExecutor', () => {
         enabled: false, // disabled
       });
 
-      const result = await executor.preflight(task.id);
+      const result = executor.preflight(task.id);
 
       expect(result.valid).toBe(true); // still valid
       expect(result.warnings.some((w) => w.includes('disabled'))).toBe(true);
