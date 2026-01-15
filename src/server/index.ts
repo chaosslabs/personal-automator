@@ -122,72 +122,95 @@ app.get('/api/templates/:id', (req: Request, res: Response): void => {
   }
 });
 
-app.post('/api/templates', (req: Request<unknown, unknown, CreateTemplateBody>, res: Response): void => {
-  try {
-    const { id, name, description, category, code, paramsSchema, requiredCredentials, suggestedSchedule } = req.body;
+app.post(
+  '/api/templates',
+  (req: Request<unknown, unknown, CreateTemplateBody>, res: Response): void => {
+    try {
+      const {
+        id,
+        name,
+        description,
+        category,
+        code,
+        paramsSchema,
+        requiredCredentials,
+        suggestedSchedule,
+      } = req.body;
 
-    if (!id || !name || !code) {
-      res.status(400).json({ error: 'id, name, and code are required' });
-      return;
+      if (!id || !name || !code) {
+        res.status(400).json({ error: 'id, name, and code are required' });
+        return;
+      }
+
+      if (db.templateExists(id)) {
+        res.status(409).json({ error: 'Template with this ID already exists' });
+        return;
+      }
+
+      const template = db.createTemplate({
+        id,
+        name,
+        description: description ?? null,
+        category: category ?? null,
+        code,
+        paramsSchema: paramsSchema ?? [],
+        requiredCredentials: requiredCredentials ?? [],
+        suggestedSchedule: suggestedSchedule ?? null,
+        isBuiltin: false,
+      });
+
+      res.status(201).json(template);
+    } catch (error) {
+      console.error('Error creating template:', error);
+      res.status(500).json({ error: 'Failed to create template' });
     }
-
-    if (db.templateExists(id)) {
-      res.status(409).json({ error: 'Template with this ID already exists' });
-      return;
-    }
-
-    const template = db.createTemplate({
-      id,
-      name,
-      description: description ?? null,
-      category: category ?? null,
-      code,
-      paramsSchema: paramsSchema ?? [],
-      requiredCredentials: requiredCredentials ?? [],
-      suggestedSchedule: suggestedSchedule ?? null,
-      isBuiltin: false,
-    });
-
-    res.status(201).json(template);
-  } catch (error) {
-    console.error('Error creating template:', error);
-    res.status(500).json({ error: 'Failed to create template' });
   }
-});
+);
 
-app.put('/api/templates/:id', (req: Request<{ id: string }, unknown, UpdateTemplateBody>, res: Response): void => {
-  try {
-    const id = req.params['id'];
-    if (!id) {
-      res.status(400).json({ error: 'Template ID is required' });
-      return;
+app.put(
+  '/api/templates/:id',
+  (req: Request<{ id: string }, unknown, UpdateTemplateBody>, res: Response): void => {
+    try {
+      const id = req.params['id'];
+      if (!id) {
+        res.status(400).json({ error: 'Template ID is required' });
+        return;
+      }
+
+      const {
+        name,
+        description,
+        category,
+        code,
+        paramsSchema,
+        requiredCredentials,
+        suggestedSchedule,
+      } = req.body;
+
+      // Build updates object, only including defined properties
+      const updates: Parameters<typeof db.updateTemplate>[1] = {};
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (category !== undefined) updates.category = category;
+      if (code !== undefined) updates.code = code;
+      if (paramsSchema !== undefined) updates.paramsSchema = paramsSchema;
+      if (requiredCredentials !== undefined) updates.requiredCredentials = requiredCredentials;
+      if (suggestedSchedule !== undefined) updates.suggestedSchedule = suggestedSchedule;
+
+      const template = db.updateTemplate(id, updates);
+
+      if (!template) {
+        res.status(404).json({ error: 'Template not found' });
+        return;
+      }
+
+      res.json(template);
+    } catch (error) {
+      console.error('Error updating template:', error);
+      res.status(500).json({ error: 'Failed to update template' });
     }
-
-    const { name, description, category, code, paramsSchema, requiredCredentials, suggestedSchedule } = req.body;
-
-    // Build updates object, only including defined properties
-    const updates: Parameters<typeof db.updateTemplate>[1] = {};
-    if (name !== undefined) updates.name = name;
-    if (description !== undefined) updates.description = description;
-    if (category !== undefined) updates.category = category;
-    if (code !== undefined) updates.code = code;
-    if (paramsSchema !== undefined) updates.paramsSchema = paramsSchema;
-    if (requiredCredentials !== undefined) updates.requiredCredentials = requiredCredentials;
-    if (suggestedSchedule !== undefined) updates.suggestedSchedule = suggestedSchedule;
-
-    const template = db.updateTemplate(id, updates);
-
-    if (!template) {
-      res.status(404).json({ error: 'Template not found' });
-      return;
-    }
-
-    res.json(template);
-  } catch (error) {
-    console.error('Error updating template:', error);
-    res.status(500).json({ error: 'Failed to update template' });
   }
-});
+);
 
 app.delete('/api/templates/:id', (req: Request, res: Response): void => {
   try {
@@ -252,10 +275,21 @@ app.get('/api/tasks/:id', (req: Request, res: Response): void => {
 
 app.post('/api/tasks', (req: Request<unknown, unknown, CreateTaskBody>, res: Response): void => {
   try {
-    const { templateId, name, description, params, scheduleType, scheduleValue, credentials, enabled } = req.body;
+    const {
+      templateId,
+      name,
+      description,
+      params,
+      scheduleType,
+      scheduleValue,
+      credentials,
+      enabled,
+    } = req.body;
 
     if (!templateId || !name || !scheduleType || !scheduleValue) {
-      res.status(400).json({ error: 'templateId, name, scheduleType, and scheduleValue are required' });
+      res
+        .status(400)
+        .json({ error: 'templateId, name, scheduleType, and scheduleValue are required' });
       return;
     }
 
@@ -287,39 +321,43 @@ app.post('/api/tasks', (req: Request<unknown, unknown, CreateTaskBody>, res: Res
   }
 });
 
-app.put('/api/tasks/:id', (req: Request<{ id: string }, unknown, UpdateTaskBody>, res: Response): void => {
-  try {
-    const idParam = req.params['id'];
-    if (!idParam) {
-      res.status(400).json({ error: 'Task ID is required' });
-      return;
+app.put(
+  '/api/tasks/:id',
+  (req: Request<{ id: string }, unknown, UpdateTaskBody>, res: Response): void => {
+    try {
+      const idParam = req.params['id'];
+      if (!idParam) {
+        res.status(400).json({ error: 'Task ID is required' });
+        return;
+      }
+
+      const { name, description, params, scheduleType, scheduleValue, credentials, enabled } =
+        req.body;
+
+      // Build updates object, only including defined properties
+      const updates: Parameters<typeof db.updateTask>[1] = {};
+      if (name !== undefined) updates.name = name;
+      if (description !== undefined) updates.description = description;
+      if (params !== undefined) updates.params = params;
+      if (scheduleType !== undefined) updates.scheduleType = scheduleType;
+      if (scheduleValue !== undefined) updates.scheduleValue = scheduleValue;
+      if (credentials !== undefined) updates.credentials = credentials;
+      if (enabled !== undefined) updates.enabled = enabled;
+
+      const task = db.updateTask(parseInt(idParam, 10), updates);
+
+      if (!task) {
+        res.status(404).json({ error: 'Task not found' });
+        return;
+      }
+
+      res.json(task);
+    } catch (error) {
+      console.error('Error updating task:', error);
+      res.status(500).json({ error: 'Failed to update task' });
     }
-
-    const { name, description, params, scheduleType, scheduleValue, credentials, enabled } = req.body;
-
-    // Build updates object, only including defined properties
-    const updates: Parameters<typeof db.updateTask>[1] = {};
-    if (name !== undefined) updates.name = name;
-    if (description !== undefined) updates.description = description;
-    if (params !== undefined) updates.params = params;
-    if (scheduleType !== undefined) updates.scheduleType = scheduleType;
-    if (scheduleValue !== undefined) updates.scheduleValue = scheduleValue;
-    if (credentials !== undefined) updates.credentials = credentials;
-    if (enabled !== undefined) updates.enabled = enabled;
-
-    const task = db.updateTask(parseInt(idParam, 10), updates);
-
-    if (!task) {
-      res.status(404).json({ error: 'Task not found' });
-      return;
-    }
-
-    res.json(task);
-  } catch (error) {
-    console.error('Error updating task:', error);
-    res.status(500).json({ error: 'Failed to update task' });
   }
-});
+);
 
 app.delete('/api/tasks/:id', (req: Request, res: Response): void => {
   try {
@@ -423,34 +461,37 @@ app.get('/api/credentials', (_req: Request, res: Response): void => {
   }
 });
 
-app.post('/api/credentials', (req: Request<unknown, unknown, CreateCredentialBody>, res: Response): void => {
-  try {
-    const { name, type, description } = req.body;
+app.post(
+  '/api/credentials',
+  (req: Request<unknown, unknown, CreateCredentialBody>, res: Response): void => {
+    try {
+      const { name, type, description } = req.body;
 
-    if (!name || !type) {
-      res.status(400).json({ error: 'name and type are required' });
-      return;
+      if (!name || !type) {
+        res.status(400).json({ error: 'name and type are required' });
+        return;
+      }
+
+      if (db.credentialExists(name)) {
+        res.status(409).json({ error: 'Credential with this name already exists' });
+        return;
+      }
+
+      // Note: Credential values are stored separately by the credential vault (Phase 1.3)
+      // This only creates the metadata
+      const credential = db.createCredential({
+        name,
+        type,
+        description: description ?? null,
+      });
+
+      res.status(201).json(credential);
+    } catch (error) {
+      console.error('Error creating credential:', error);
+      res.status(500).json({ error: 'Failed to create credential' });
     }
-
-    if (db.credentialExists(name)) {
-      res.status(409).json({ error: 'Credential with this name already exists' });
-      return;
-    }
-
-    // Note: Credential values are stored separately by the credential vault (Phase 1.3)
-    // This only creates the metadata
-    const credential = db.createCredential({
-      name,
-      type,
-      description: description ?? null,
-    });
-
-    res.status(201).json(credential);
-  } catch (error) {
-    console.error('Error creating credential:', error);
-    res.status(500).json({ error: 'Failed to create credential' });
   }
-});
+);
 
 app.delete('/api/credentials/:id', (req: Request, res: Response): void => {
   try {

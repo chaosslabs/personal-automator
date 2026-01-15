@@ -54,9 +54,9 @@ export class CredentialRepository {
   create(credential: Omit<Credential, 'id' | 'createdAt' | 'lastUsedAt'>): Credential {
     const now = new Date().toISOString();
     const result = this.db
-      .prepare<[string, string, string | null]>(
-        'INSERT INTO credentials (name, type, description) VALUES (?, ?, ?)'
-      )
+      .prepare<
+        [string, string, string | null]
+      >('INSERT INTO credentials (name, type, description) VALUES (?, ?, ?)')
       .run(credential.name, credential.type, credential.description);
 
     return {
@@ -79,9 +79,9 @@ export class CredentialRepository {
     const updated = { ...existing, ...updates };
 
     this.db
-      .prepare<[string | null, string | null, number]>(
-        'UPDATE credentials SET description = ?, last_used_at = ? WHERE id = ?'
-      )
+      .prepare<
+        [string | null, string | null, number]
+      >('UPDATE credentials SET description = ?, last_used_at = ? WHERE id = ?')
       .run(updated.description, updated.lastUsedAt, id);
 
     return updated;
@@ -100,9 +100,10 @@ export class CredentialRepository {
    */
   exists(name: string): boolean {
     const row = this.db
-      .prepare<[string], { count: number }>(
-        'SELECT COUNT(*) as count FROM credentials WHERE name = ?'
-      )
+      .prepare<
+        [string],
+        { count: number }
+      >('SELECT COUNT(*) as count FROM credentials WHERE name = ?')
       .get(name);
     return (row?.count ?? 0) > 0;
   }
@@ -121,7 +122,10 @@ export class CredentialRepository {
    */
   getInUse(): string[] {
     const rows = this.db
-      .prepare<[], { credentials: string }>("SELECT DISTINCT credentials FROM tasks WHERE credentials != '[]'")
+      .prepare<
+        [],
+        { credentials: string }
+      >("SELECT DISTINCT credentials FROM tasks WHERE credentials != '[]'")
       .all();
 
     const allCredentials = new Set<string>();

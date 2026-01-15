@@ -5,7 +5,12 @@ import { existsSync, mkdirSync } from 'fs';
 import { DATABASE_FILENAME } from '../../shared/constants.js';
 import { builtinTemplates } from '../../shared/builtin-templates.js';
 import { migrations } from './migrations.js';
-import { TemplateRepository, TaskRepository, ExecutionRepository, CredentialRepository } from './models/index.js';
+import {
+  TemplateRepository,
+  TaskRepository,
+  ExecutionRepository,
+  CredentialRepository,
+} from './models/index.js';
 import type { MigrationRow } from './types.js';
 import type {
   Template,
@@ -184,7 +189,10 @@ export class DatabaseService {
     return this.tasks.create(task);
   }
 
-  updateTask(id: number, updates: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>>): Task | null {
+  updateTask(
+    id: number,
+    updates: Partial<Omit<Task, 'id' | 'createdAt' | 'updatedAt'>>
+  ): Task | null {
     return this.tasks.update(id, updates);
   }
 
@@ -263,7 +271,10 @@ export class DatabaseService {
     return this.credentials.create(credential);
   }
 
-  updateCredential(id: number, updates: Partial<Omit<Credential, 'id' | 'createdAt'>>): Credential | null {
+  updateCredential(
+    id: number,
+    updates: Partial<Omit<Credential, 'id' | 'createdAt'>>
+  ): Credential | null {
     return this.credentials.update(id, updates);
   }
 

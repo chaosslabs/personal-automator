@@ -129,7 +129,21 @@ export class TaskRepository {
     const updated = { ...existing, ...updates, updatedAt: now };
 
     this.db
-      .prepare<[string, string | null, string, string, string, string, number, string | null, string | null, string, number]>(
+      .prepare<
+        [
+          string,
+          string | null,
+          string,
+          string,
+          string,
+          string,
+          number,
+          string | null,
+          string | null,
+          string,
+          number,
+        ]
+      >(
         `UPDATE tasks
        SET name = ?, description = ?, params = ?, schedule_type = ?, schedule_value = ?,
            credentials = ?, enabled = ?, last_run_at = ?, next_run_at = ?, updated_at = ?
@@ -174,9 +188,9 @@ export class TaskRepository {
    */
   updateLastRun(id: number, lastRunAt: string, nextRunAt: string | null): void {
     this.db
-      .prepare<[string, string | null, number]>(
-        `UPDATE tasks SET last_run_at = ?, next_run_at = ?, updated_at = datetime('now') WHERE id = ?`
-      )
+      .prepare<
+        [string, string | null, number]
+      >(`UPDATE tasks SET last_run_at = ?, next_run_at = ?, updated_at = datetime('now') WHERE id = ?`)
       .run(lastRunAt, nextRunAt, id);
   }
 

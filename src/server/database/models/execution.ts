@@ -90,9 +90,9 @@ export class ExecutionRepository {
   create(taskId: number): Execution {
     const now = new Date().toISOString();
     const result = this.db
-      .prepare<[number, string, string]>(
-        'INSERT INTO executions (task_id, started_at, status) VALUES (?, ?, ?)'
-      )
+      .prepare<
+        [number, string, string]
+      >('INSERT INTO executions (task_id, started_at, status) VALUES (?, ?, ?)')
       .run(taskId, now, 'running');
 
     return {
@@ -128,7 +128,8 @@ export class ExecutionRepository {
     if (!startedRow) return null;
 
     const durationMs =
-      updates.durationMs ?? new Date(finishedAt).getTime() - new Date(startedRow.started_at).getTime();
+      updates.durationMs ??
+      new Date(finishedAt).getTime() - new Date(startedRow.started_at).getTime();
 
     this.db
       .prepare<[string, string, string | null, string | null, number, number]>(
@@ -153,9 +154,9 @@ export class ExecutionRepository {
    */
   deleteOld(olderThanDays: number): number {
     const result = this.db
-      .prepare<[number]>(
-        `DELETE FROM executions WHERE started_at < datetime('now', '-' || ? || ' days')`
-      )
+      .prepare<
+        [number]
+      >(`DELETE FROM executions WHERE started_at < datetime('now', '-' || ? || ' days')`)
       .run(olderThanDays);
     return result.changes;
   }
@@ -179,9 +180,10 @@ export class ExecutionRepository {
    */
   getPendingCount(): number {
     const row = this.db
-      .prepare<[], { count: number }>(
-        "SELECT COUNT(*) as count FROM executions WHERE status = 'running'"
-      )
+      .prepare<
+        [],
+        { count: number }
+      >("SELECT COUNT(*) as count FROM executions WHERE status = 'running'")
       .get();
     return row?.count ?? 0;
   }

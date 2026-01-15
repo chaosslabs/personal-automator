@@ -57,7 +57,17 @@ export class TemplateRepository {
     const now = new Date().toISOString();
     this.db
       .prepare<
-        [string, string, string | null, string | null, string, string, string, string | null, number]
+        [
+          string,
+          string,
+          string | null,
+          string | null,
+          string,
+          string,
+          string,
+          string | null,
+          number,
+        ]
       >(
         `INSERT INTO templates (id, name, description, category, code, params_schema, required_credentials, suggested_schedule, is_builtin)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -95,7 +105,19 @@ export class TemplateRepository {
     const updated = { ...existing, ...updates, updatedAt: now };
 
     this.db
-      .prepare<[string, string | null, string | null, string, string, string, string | null, string, string]>(
+      .prepare<
+        [
+          string,
+          string | null,
+          string | null,
+          string,
+          string,
+          string,
+          string | null,
+          string,
+          string,
+        ]
+      >(
         `UPDATE templates
        SET name = ?, description = ?, category = ?, code = ?,
            params_schema = ?, required_credentials = ?, suggested_schedule = ?, updated_at = ?
