@@ -31,10 +31,10 @@ export class TemplateRepository {
 
     if (category) {
       const query = 'SELECT * FROM templates WHERE category = ? ORDER BY name';
-      rows = this.db.prepare<[string], TemplateRow>(query).all(category) as TemplateRow[];
+      rows = this.db.prepare<[string], TemplateRow>(query).all(category);
     } else {
       const query = 'SELECT * FROM templates ORDER BY name';
-      rows = this.db.prepare<[], TemplateRow>(query).all() as TemplateRow[];
+      rows = this.db.prepare<[], TemplateRow>(query).all();
     }
 
     return rows.map((row) => this.rowToTemplate(row));

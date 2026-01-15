@@ -24,7 +24,7 @@ export class CredentialRepository {
   getAll(): Credential[] {
     const rows = this.db
       .prepare<[], CredentialRow>('SELECT * FROM credentials ORDER BY name')
-      .all() as CredentialRow[];
+      .all();
     return rows.map((row) => this.rowToCredential(row));
   }
 

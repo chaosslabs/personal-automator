@@ -1,9 +1,65 @@
-import express, { Request, Response } from 'express';
+import express, { type Request, type Response } from 'express';
 import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { getDatabase, closeDatabase } from './database/index.js';
-import type { TaskFilters, ExecutionFilters, ExecutionStatus } from '../shared/types.js';
+import type {
+  TaskFilters,
+  ExecutionFilters,
+  ExecutionStatus,
+  ParamDefinition,
+  CredentialType,
+  ScheduleType,
+} from '../shared/types.js';
+
+// Request body types
+interface CreateTemplateBody {
+  id?: string;
+  name?: string;
+  description?: string | null;
+  category?: string | null;
+  code?: string;
+  paramsSchema?: ParamDefinition[];
+  requiredCredentials?: string[];
+  suggestedSchedule?: string | null;
+}
+
+interface UpdateTemplateBody {
+  name?: string;
+  description?: string | null;
+  category?: string | null;
+  code?: string;
+  paramsSchema?: ParamDefinition[];
+  requiredCredentials?: string[];
+  suggestedSchedule?: string | null;
+}
+
+interface CreateTaskBody {
+  templateId?: string;
+  name?: string;
+  description?: string | null;
+  params?: Record<string, unknown>;
+  scheduleType?: ScheduleType;
+  scheduleValue?: string;
+  credentials?: string[];
+  enabled?: boolean;
+}
+
+interface UpdateTaskBody {
+  name?: string;
+  description?: string | null;
+  params?: Record<string, unknown>;
+  scheduleType?: ScheduleType;
+  scheduleValue?: string;
+  credentials?: string[];
+  enabled?: boolean;
+}
+
+interface CreateCredentialBody {
+  name?: string;
+  type?: CredentialType;
+  description?: string | null;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -66,7 +122,7 @@ app.get('/api/templates/:id', (req: Request, res: Response): void => {
   }
 });
 
-app.post('/api/templates', (req: Request, res: Response): void => {
+app.post('/api/templates', (req: Request<unknown, unknown, CreateTemplateBody>, res: Response): void => {
   try {
     const { id, name, description, category, code, paramsSchema, requiredCredentials, suggestedSchedule } = req.body;
 
@@ -99,7 +155,7 @@ app.post('/api/templates', (req: Request, res: Response): void => {
   }
 });
 
-app.put('/api/templates/:id', (req: Request, res: Response): void => {
+app.put('/api/templates/:id', (req: Request<{ id: string }, unknown, UpdateTemplateBody>, res: Response): void => {
   try {
     const id = req.params['id'];
     if (!id) {
@@ -109,15 +165,17 @@ app.put('/api/templates/:id', (req: Request, res: Response): void => {
 
     const { name, description, category, code, paramsSchema, requiredCredentials, suggestedSchedule } = req.body;
 
-    const template = db.updateTemplate(id, {
-      name,
-      description,
-      category,
-      code,
-      paramsSchema,
-      requiredCredentials,
-      suggestedSchedule,
-    });
+    // Build updates object, only including defined properties
+    const updates: Parameters<typeof db.updateTemplate>[1] = {};
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    if (category !== undefined) updates.category = category;
+    if (code !== undefined) updates.code = code;
+    if (paramsSchema !== undefined) updates.paramsSchema = paramsSchema;
+    if (requiredCredentials !== undefined) updates.requiredCredentials = requiredCredentials;
+    if (suggestedSchedule !== undefined) updates.suggestedSchedule = suggestedSchedule;
+
+    const template = db.updateTemplate(id, updates);
 
     if (!template) {
       res.status(404).json({ error: 'Template not found' });
@@ -192,7 +250,7 @@ app.get('/api/tasks/:id', (req: Request, res: Response): void => {
   }
 });
 
-app.post('/api/tasks', (req: Request, res: Response): void => {
+app.post('/api/tasks', (req: Request<unknown, unknown, CreateTaskBody>, res: Response): void => {
   try {
     const { templateId, name, description, params, scheduleType, scheduleValue, credentials, enabled } = req.body;
 
@@ -229,7 +287,7 @@ app.post('/api/tasks', (req: Request, res: Response): void => {
   }
 });
 
-app.put('/api/tasks/:id', (req: Request, res: Response): void => {
+app.put('/api/tasks/:id', (req: Request<{ id: string }, unknown, UpdateTaskBody>, res: Response): void => {
   try {
     const idParam = req.params['id'];
     if (!idParam) {
@@ -239,15 +297,17 @@ app.put('/api/tasks/:id', (req: Request, res: Response): void => {
 
     const { name, description, params, scheduleType, scheduleValue, credentials, enabled } = req.body;
 
-    const task = db.updateTask(parseInt(idParam, 10), {
-      name,
-      description,
-      params,
-      scheduleType,
-      scheduleValue,
-      credentials,
-      enabled,
-    });
+    // Build updates object, only including defined properties
+    const updates: Parameters<typeof db.updateTask>[1] = {};
+    if (name !== undefined) updates.name = name;
+    if (description !== undefined) updates.description = description;
+    if (params !== undefined) updates.params = params;
+    if (scheduleType !== undefined) updates.scheduleType = scheduleType;
+    if (scheduleValue !== undefined) updates.scheduleValue = scheduleValue;
+    if (credentials !== undefined) updates.credentials = credentials;
+    if (enabled !== undefined) updates.enabled = enabled;
+
+    const task = db.updateTask(parseInt(idParam, 10), updates);
 
     if (!task) {
       res.status(404).json({ error: 'Task not found' });
@@ -363,7 +423,7 @@ app.get('/api/credentials', (_req: Request, res: Response): void => {
   }
 });
 
-app.post('/api/credentials', (req: Request, res: Response): void => {
+app.post('/api/credentials', (req: Request<unknown, unknown, CreateCredentialBody>, res: Response): void => {
   try {
     const { name, type, description } = req.body;
 

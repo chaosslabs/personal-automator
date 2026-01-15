@@ -53,7 +53,7 @@ export class TaskRepository {
     query += ' ORDER BY name';
 
     const stmt = this.db.prepare<(string | number)[], TaskRow>(query);
-    const rows = stmt.all(...params) as TaskRow[];
+    const rows = stmt.all(...params);
     return rows.map((row) => this.rowToTask(row));
   }
 
@@ -192,7 +192,7 @@ export class TaskRepository {
        AND next_run_at <= datetime('now')
        ORDER BY next_run_at`
       )
-      .all() as TaskRow[];
+      .all();
     return rows.map((row) => this.rowToTask(row));
   }
 

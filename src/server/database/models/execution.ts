@@ -66,7 +66,7 @@ export class ExecutionRepository {
     params.push(limit, offset);
 
     const stmt = this.db.prepare<(string | number)[], ExecutionRow>(query);
-    const rows = stmt.all(...params) as ExecutionRow[];
+    const rows = stmt.all(...params);
 
     return {
       executions: rows.map((row) => this.rowToExecution(row)),
