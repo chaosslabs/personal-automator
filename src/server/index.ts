@@ -3,6 +3,7 @@ import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { getDatabase, closeDatabase } from './database/index.js';
+import { getVault, closeVault } from './vault/index.js';
 import type {
   TaskFilters,
   ExecutionFilters,
@@ -59,6 +60,11 @@ interface CreateCredentialBody {
   name?: string;
   type?: CredentialType;
   description?: string | null;
+  value?: string; // The plaintext value to encrypt and store
+}
+
+interface UpdateCredentialValueBody {
+  value?: string; // The new plaintext value to encrypt and store
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -67,9 +73,12 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env['PORT'] ?? 3000;
 
-// Initialize database
+// Initialize database and vault
 const db = getDatabase();
 console.log('Database initialized');
+
+const vault = getVault();
+console.log('Credential vault initialized');
 
 // Middleware
 app.use(cors());
@@ -451,9 +460,11 @@ app.get('/api/executions/:id', (req: Request, res: Response): void => {
 });
 
 // Credential routes
+// Note: Credential values are NEVER returned in API responses (security requirement)
 app.get('/api/credentials', (_req: Request, res: Response): void => {
   try {
-    const credentials = db.getCredentials();
+    // Returns credentials with hasValue indicator (but not actual values)
+    const credentials = db.credentials.getAllWithValueStatus();
     res.json(credentials);
   } catch (error) {
     console.error('Error fetching credentials:', error);
@@ -465,7 +476,7 @@ app.post(
   '/api/credentials',
   (req: Request<unknown, unknown, CreateCredentialBody>, res: Response): void => {
     try {
-      const { name, type, description } = req.body;
+      const { name, type, description, value } = req.body;
 
       if (!name || !type) {
         res.status(400).json({ error: 'name and type are required' });
@@ -477,21 +488,115 @@ app.post(
         return;
       }
 
-      // Note: Credential values are stored separately by the credential vault (Phase 1.3)
-      // This only creates the metadata
-      const credential = db.createCredential({
-        name,
-        type,
-        description: description ?? null,
-      });
+      let credential;
 
-      res.status(201).json(credential);
+      if (value) {
+        // Encrypt and store the value along with metadata
+        const encryptedValue = vault.encrypt(value);
+        credential = db.credentials.createWithValue(
+          {
+            name,
+            type,
+            description: description ?? null,
+          },
+          encryptedValue
+        );
+      } else {
+        // Create metadata only (value can be added later)
+        credential = db.createCredential({
+          name,
+          type,
+          description: description ?? null,
+        });
+      }
+
+      // Return credential with hasValue indicator
+      res.status(201).json({
+        ...credential,
+        hasValue: !!value,
+      });
     } catch (error) {
       console.error('Error creating credential:', error);
       res.status(500).json({ error: 'Failed to create credential' });
     }
   }
 );
+
+// Update credential value (encrypt and store new value)
+app.put(
+  '/api/credentials/:name/value',
+  (req: Request<{ name: string }, unknown, UpdateCredentialValueBody>, res: Response): void => {
+    try {
+      const name = req.params['name'];
+      if (!name) {
+        res.status(400).json({ error: 'Credential name is required' });
+        return;
+      }
+
+      const { value } = req.body;
+      if (!value) {
+        res.status(400).json({ error: 'value is required' });
+        return;
+      }
+
+      const credential = db.getCredentialByName(name);
+      if (!credential) {
+        res.status(404).json({ error: 'Credential not found' });
+        return;
+      }
+
+      // Encrypt and store the new value
+      const encryptedValue = vault.encrypt(value);
+      const updated = db.credentials.updateValue(name, encryptedValue);
+
+      if (!updated) {
+        res.status(500).json({ error: 'Failed to update credential value' });
+        return;
+      }
+
+      res.json({
+        ...credential,
+        hasValue: true,
+        message: 'Credential value updated successfully',
+      });
+    } catch (error) {
+      console.error('Error updating credential value:', error);
+      res.status(500).json({ error: 'Failed to update credential value' });
+    }
+  }
+);
+
+// Clear credential value (remove encrypted value but keep metadata)
+app.delete('/api/credentials/:name/value', (req: Request, res: Response): void => {
+  try {
+    const name = req.params['name'];
+    if (!name) {
+      res.status(400).json({ error: 'Credential name is required' });
+      return;
+    }
+
+    const credential = db.getCredentialByName(name);
+    if (!credential) {
+      res.status(404).json({ error: 'Credential not found' });
+      return;
+    }
+
+    const cleared = db.credentials.clearEncryptedValue(name);
+    if (!cleared) {
+      res.status(500).json({ error: 'Failed to clear credential value' });
+      return;
+    }
+
+    res.json({
+      ...credential,
+      hasValue: false,
+      message: 'Credential value cleared successfully',
+    });
+  } catch (error) {
+    console.error('Error clearing credential value:', error);
+    res.status(500).json({ error: 'Failed to clear credential value' });
+  }
+});
 
 app.delete('/api/credentials/:id', (req: Request, res: Response): void => {
   try {
@@ -553,6 +658,8 @@ const shutdown = (): void => {
   console.log('Shutting down...');
   server.close(() => {
     console.log('HTTP server closed');
+    closeVault();
+    console.log('Vault closed');
     closeDatabase();
     console.log('Database closed');
     process.exit(0);

@@ -23,11 +23,11 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [x] Seed built-in templates on first launch
 
 ### 1.3 Credential Vault
-- [ ] Implement secure master key storage
-- [ ] Implement master key derivation
-- [ ] Create AES-256-GCM encryption/decryption utilities
-- [ ] Build credential CRUD operations
-- [ ] Implement secure credential injection for tasks
+- [x] Implement secure master key storage
+- [x] Implement master key derivation
+- [x] Create AES-256-GCM encryption/decryption utilities
+- [x] Build credential CRUD operations
+- [x] Implement secure credential injection for tasks
 
 ### 1.4 Task Executor
 - [ ] Create execution engine (load template, inject params)

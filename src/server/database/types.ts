@@ -55,6 +55,7 @@ export interface CredentialRow {
   name: string;
   type: string;
   description: string | null;
+  encrypted_value: string | null;
   created_at: string;
   last_used_at: string | null;
 }

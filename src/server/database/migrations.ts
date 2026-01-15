@@ -78,4 +78,17 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_templates_category ON templates(category);
     `,
   },
+  {
+    name: '002_credential_vault',
+    up: `
+      -- Add encrypted_value column to credentials table
+      -- The value is stored as a base64-encoded string containing:
+      -- [iv (12 bytes)][auth_tag (16 bytes)][ciphertext]
+      -- Encrypted using AES-256-GCM
+      ALTER TABLE credentials ADD COLUMN encrypted_value TEXT;
+
+      -- Add index for credential name lookups (frequently used for injection)
+      CREATE INDEX IF NOT EXISTS idx_credentials_name ON credentials(name);
+    `,
+  },
 ];
