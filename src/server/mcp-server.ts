@@ -24,7 +24,7 @@ import { getVault, closeVault } from './vault/index.js';
 import { getExecutor, closeExecutor } from './executor/index.js';
 import { getScheduler, closeScheduler } from './scheduler/index.js';
 import { MCPServer } from './mcp/index.js';
-import { registerTemplateTools } from './mcp/tools/index.js';
+import { registerTemplateTools, registerTaskTools } from './mcp/tools/index.js';
 
 // Global MCP server instance
 let mcpServer: MCPServer | null = null;
@@ -62,6 +62,9 @@ async function main(): Promise<void> {
     // Register tools
     registerTemplateTools(mcpServer);
     console.error('[MCP] Template tools registered');
+
+    registerTaskTools(mcpServer);
+    console.error('[MCP] Task management tools registered');
 
     // Start MCP server
     await mcpServer.start();
