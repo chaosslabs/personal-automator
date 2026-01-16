@@ -24,6 +24,7 @@ import { getVault, closeVault } from './vault/index.js';
 import { getExecutor, closeExecutor } from './executor/index.js';
 import { getScheduler, closeScheduler } from './scheduler/index.js';
 import { MCPServer } from './mcp/index.js';
+import { registerTemplateTools } from './mcp/tools/index.js';
 
 // Global MCP server instance
 let mcpServer: MCPServer | null = null;
@@ -50,7 +51,7 @@ async function main(): Promise<void> {
     scheduler.start();
     console.error('[MCP] Scheduler initialized and started');
 
-    // Create and start MCP server
+    // Create MCP server
     mcpServer = new MCPServer({
       db,
       vault,
@@ -58,9 +59,11 @@ async function main(): Promise<void> {
       scheduler,
     });
 
-    // Note: Tools will be registered by tool modules in future commits
-    // For now, the server starts with no tools registered
+    // Register tools
+    registerTemplateTools(mcpServer);
+    console.error('[MCP] Template tools registered');
 
+    // Start MCP server
     await mcpServer.start();
   } catch (error) {
     console.error('[MCP] Failed to start MCP server:', error);

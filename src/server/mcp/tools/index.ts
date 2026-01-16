@@ -1,0 +1,7 @@
+/**
+ * MCP Tools Index
+ *
+ * Exports all tool registration functions.
+ */
+
+export { registerTemplateTools } from './templates.js';
