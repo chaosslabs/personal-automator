@@ -28,6 +28,7 @@ import {
   registerTemplateTools,
   registerTaskTools,
   registerExecutionTools,
+  registerCredentialTools,
 } from './mcp/tools/index.js';
 
 // Global MCP server instance
@@ -72,6 +73,9 @@ async function main(): Promise<void> {
 
     registerExecutionTools(mcpServer);
     console.error('[MCP] Execution tools registered');
+
+    registerCredentialTools(mcpServer);
+    console.error('[MCP] Credential tools registered');
 
     // Start MCP server
     await mcpServer.start();
