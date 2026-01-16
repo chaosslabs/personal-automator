@@ -30,11 +30,11 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [x] Implement secure credential injection for tasks
 
 ### 1.4 Task Executor
-- [ ] Create execution engine (load template, inject params)
-- [ ] Implement console output capture
-- [ ] Add timeout handling
-- [ ] Build result/error capture
-- [ ] Create execution record persistence
+- [x] Create execution engine (load template, inject params)
+- [x] Implement console output capture
+- [x] Add timeout handling
+- [x] Build result/error capture
+- [x] Create execution record persistence
 
 ### 1.5 Scheduler
 - [x] Integrate node-cron
@@ -51,57 +51,57 @@ Development roadmap for Personal Automator organized into phases with clear mile
 **Goal**: Full MCP API implementation
 
 ### 2.1 MCP Server Core
-- [ ] Set up @modelcontextprotocol/sdk
-- [ ] Configure stdio transport
-- [ ] Implement server initialization
-- [ ] Add graceful shutdown handling
+- [x] Set up @modelcontextprotocol/sdk
+- [x] Configure stdio transport
+- [x] Implement server initialization
+- [x] Add graceful shutdown handling
 
 ### 2.2 Template Tools
-- [ ] `list_templates` - List available templates
+- [x] `list_templates` - List available templates
   - Filter by: category
   - Include: params schema, required credentials
 
 ### 2.3 Task Management Tools
-- [ ] `schedule_task` - Create new scheduled task from template
+- [x] `schedule_task` - Create new scheduled task from template
   - Parameters: template_id, name, params, schedule, credentials[]
   - Validate params against template schema
   - Validate cron expressions
   - Validate credential references exist
-- [ ] `list_tasks` - List all tasks
+- [x] `list_tasks` - List all tasks
   - Filter by: enabled, has_errors, template_id
   - Include: last_run, next_run, status
-- [ ] `get_task` - Get task details
+- [x] `get_task` - Get task details
   - Include: template info, params, schedule, recent executions
-- [ ] `update_task` - Modify existing task
+- [x] `update_task` - Modify existing task
   - Support partial param updates
   - Reschedule if schedule changes
   - Cannot change template (delete and recreate)
-- [ ] `delete_task` - Remove task
+- [x] `delete_task` - Remove task
   - Cascade delete executions
   - Cancel scheduled job
-- [ ] `toggle_task` - Enable/disable task
+- [x] `toggle_task` - Enable/disable task
 
 ### 2.4 Execution Tools
-- [ ] `execute_task` - Run task immediately
+- [x] `execute_task` - Run task immediately
   - Return execution ID
   - Option: wait for completion or return immediately
-- [ ] `get_executions` - Get execution history
+- [x] `get_executions` - Get execution history
   - Filter by: task_name, status, date range
   - Pagination support
-- [ ] `get_execution` - Get single execution details
+- [x] `get_execution` - Get single execution details
   - Full output and error logs
 
 ### 2.5 Credential Tools
-- [ ] `add_credential` - Store new credential
+- [x] `add_credential` - Store new credential
   - Parameters: name, value, type, description
   - Encrypt and store securely
-- [ ] `list_credentials` - List credentials (names only)
+- [x] `list_credentials` - List credentials (names only)
   - Include: type, created_at, last_used, usage_count
-- [ ] `delete_credential` - Remove credential
+- [x] `delete_credential` - Remove credential
   - Warn if credential is in use by tasks
 
 ### 2.6 System Tools
-- [ ] `get_status` - System health check
+- [x] `get_status` - System health check
   - Scheduler status
   - Database stats
   - Pending tasks count
