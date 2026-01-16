@@ -37,12 +37,12 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] Create execution record persistence
 
 ### 1.5 Scheduler
-- [ ] Integrate node-cron
-- [ ] Implement cron expression validation
-- [ ] Create job registration and management
-- [ ] Add one-time task scheduling (setTimeout-based)
-- [ ] Implement next-run calculation
-- [ ] Handle app restart (reschedule persisted tasks)
+- [x] Integrate node-cron
+- [x] Implement cron expression validation
+- [x] Create job registration and management
+- [x] Add one-time task scheduling (setTimeout-based)
+- [x] Implement next-run calculation
+- [x] Handle app restart (reschedule persisted tasks)
 
 ---
 
