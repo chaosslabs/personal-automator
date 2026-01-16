@@ -5,6 +5,7 @@ import { dirname, join } from 'path';
 import { getDatabase, closeDatabase } from './database/index.js';
 import { getVault, closeVault } from './vault/index.js';
 import { getExecutor, closeExecutor } from './executor/index.js';
+import { getScheduler, closeScheduler, Scheduler } from './scheduler/index.js';
 import type {
   TaskFilters,
   ExecutionFilters,
@@ -84,6 +85,10 @@ console.log('Credential vault initialized');
 const executor = getExecutor(db, vault);
 console.log('Task executor initialized');
 
+const scheduler = getScheduler(db, executor);
+scheduler.start();
+console.log('Scheduler initialized and started');
+
 // Middleware
 app.use(cors());
 app.use(express.json());
@@ -95,7 +100,8 @@ app.get('/api/status', (_req: Request, res: Response): void => {
     status: 'ok',
     version: process.env['npm_package_version'] ?? '0.1.0',
     uptime: process.uptime(),
-    schedulerRunning: false, // Will be implemented in 1.5
+    schedulerRunning: scheduler.isRunning(),
+    scheduledJobs: scheduler.getJobCount(),
     databaseConnected: db.isConnected(),
     tasksCount: stats.tasksCount,
     enabledTasksCount: stats.enabledTasksCount,
@@ -306,6 +312,13 @@ app.post('/api/tasks', (req: Request<unknown, unknown, CreateTaskBody>, res: Res
       return;
     }
 
+    // Validate schedule
+    const scheduleValidation = Scheduler.validateSchedule(scheduleType, scheduleValue);
+    if (!scheduleValidation.valid) {
+      res.status(400).json({ error: scheduleValidation.error });
+      return;
+    }
+
     if (!db.templateExists(templateId)) {
       res.status(400).json({ error: 'Template not found' });
       return;
@@ -316,6 +329,10 @@ app.post('/api/tasks', (req: Request<unknown, unknown, CreateTaskBody>, res: Res
       return;
     }
 
+    // Calculate initial next run time
+    const isEnabled = enabled ?? true;
+    const nextRunAt = isEnabled ? Scheduler.calculateNextRunISO(scheduleType, scheduleValue) : null;
+
     const task = db.createTask({
       templateId,
       name,
@@ -324,8 +341,14 @@ app.post('/api/tasks', (req: Request<unknown, unknown, CreateTaskBody>, res: Res
       scheduleType,
       scheduleValue,
       credentials: credentials ?? [],
-      enabled: enabled ?? true,
+      enabled: isEnabled,
+      nextRunAt,
     });
+
+    // Register with scheduler if enabled
+    if (task.enabled) {
+      scheduler.registerTask(task);
+    }
 
     res.status(201).json(task);
   } catch (error) {
@@ -344,6 +367,13 @@ app.put(
         return;
       }
 
+      const taskId = parseInt(idParam, 10);
+      const existingTask = db.getTask(taskId);
+      if (!existingTask) {
+        res.status(404).json({ error: 'Task not found' });
+        return;
+      }
+
       const { name, description, params, scheduleType, scheduleValue, credentials, enabled } =
         req.body;
 
@@ -357,11 +387,38 @@ app.put(
       if (credentials !== undefined) updates.credentials = credentials;
       if (enabled !== undefined) updates.enabled = enabled;
 
-      const task = db.updateTask(parseInt(idParam, 10), updates);
+      // Validate schedule if it changed
+      const newScheduleType = scheduleType ?? existingTask.scheduleType;
+      const newScheduleValue = scheduleValue ?? existingTask.scheduleValue;
+      if (scheduleType !== undefined || scheduleValue !== undefined) {
+        const scheduleValidation = Scheduler.validateSchedule(newScheduleType, newScheduleValue);
+        if (!scheduleValidation.valid) {
+          res.status(400).json({ error: scheduleValidation.error });
+          return;
+        }
+      }
+
+      // Recalculate next run time if schedule or enabled status changed
+      const newEnabled = enabled ?? existingTask.enabled;
+      const scheduleChanged = scheduleType !== undefined || scheduleValue !== undefined;
+      const enabledChanged = enabled !== undefined && enabled !== existingTask.enabled;
+
+      if (scheduleChanged || enabledChanged) {
+        updates.nextRunAt = newEnabled
+          ? Scheduler.calculateNextRunISO(newScheduleType, newScheduleValue)
+          : null;
+      }
+
+      const task = db.updateTask(taskId, updates);
 
       if (!task) {
         res.status(404).json({ error: 'Task not found' });
         return;
+      }
+
+      // Update scheduler if schedule or enabled status changed
+      if (scheduleChanged || enabledChanged) {
+        scheduler.updateTaskSchedule(taskId);
       }
 
       res.json(task);
@@ -379,7 +436,12 @@ app.delete('/api/tasks/:id', (req: Request, res: Response): void => {
       res.status(400).json({ error: 'Task ID is required' });
       return;
     }
-    const deleted = db.deleteTask(parseInt(idParam, 10));
+    const taskId = parseInt(idParam, 10);
+
+    // Unregister from scheduler first
+    scheduler.unregisterTask(taskId);
+
+    const deleted = db.deleteTask(taskId);
     if (!deleted) {
       res.status(404).json({ error: 'Task not found' });
       return;
@@ -398,12 +460,25 @@ app.post('/api/tasks/:id/toggle', (req: Request, res: Response): void => {
       res.status(400).json({ error: 'Task ID is required' });
       return;
     }
-    const task = db.toggleTask(parseInt(idParam, 10));
+    const taskId = parseInt(idParam, 10);
+    const task = db.toggleTask(taskId);
     if (!task) {
       res.status(404).json({ error: 'Task not found' });
       return;
     }
-    res.json(task);
+
+    // Update next run time based on new enabled status
+    const nextRunAt = task.enabled
+      ? Scheduler.calculateNextRunISO(task.scheduleType, task.scheduleValue)
+      : null;
+    db.updateTask(taskId, { nextRunAt });
+
+    // Update scheduler
+    scheduler.updateTaskSchedule(taskId);
+
+    // Return task with updated nextRunAt
+    const updatedTask = db.getTask(taskId);
+    res.json(updatedTask ?? task);
   } catch (error) {
     console.error('Error toggling task:', error);
     res.status(500).json({ error: 'Failed to toggle task' });
@@ -727,6 +802,8 @@ const shutdown = (): void => {
   console.log('Shutting down...');
   server.close(() => {
     console.log('HTTP server closed');
+    closeScheduler();
+    console.log('Scheduler closed');
     closeExecutor();
     console.log('Executor closed');
     closeVault();

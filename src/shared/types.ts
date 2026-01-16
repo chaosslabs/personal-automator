@@ -82,6 +82,7 @@ export interface SystemStatus {
   version: string;
   uptime: number;
   schedulerRunning: boolean;
+  scheduledJobs: number;
   databaseConnected: boolean;
   tasksCount: number;
   enabledTasksCount: number;
