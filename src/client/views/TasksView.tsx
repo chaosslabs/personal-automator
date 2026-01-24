@@ -1,20 +1,28 @@
 import { useState, useEffect } from 'react';
-import type { Task, Template, TaskFilters } from '../../shared/types';
+import type { Task, Template, Credential, TaskFilters } from '../../shared/types';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { ErrorMessage } from '../components/ErrorMessage';
 import { EmptyState } from '../components/EmptyState';
+import { TaskEditor, type TaskFormData } from '../components/TaskEditor';
 import { api } from '../utils/api';
 import '../styles/tasks.css';
+
+type ViewMode = 'list' | 'create' | 'edit';
 
 export function TasksView() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [credentials, setCredentials] = useState<Array<Credential & { hasValue: boolean }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [templateFilter, setTemplateFilter] = useState<string>('all');
   const [selectedTasks, setSelectedTasks] = useState<Set<number>>(new Set());
+
+  // Editor state
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   const loadTasks = async () => {
     try {
@@ -43,9 +51,19 @@ export function TasksView() {
     }
   };
 
+  const loadCredentials = async () => {
+    try {
+      const data = await api.getCredentials();
+      setCredentials(data);
+    } catch (err) {
+      console.error('Failed to load credentials:', err);
+    }
+  };
+
   useEffect(() => {
     void loadTasks();
     void loadTemplates();
+    void loadCredentials();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -176,6 +194,56 @@ export function TasksView() {
     }
   };
 
+  const handleCreateTask = () => {
+    setEditingTask(null);
+    setViewMode('create');
+  };
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setViewMode('edit');
+  };
+
+  const handleCancelEdit = () => {
+    setEditingTask(null);
+    setViewMode('list');
+  };
+
+  const handleSaveTask = async (data: TaskFormData) => {
+    try {
+      if (editingTask) {
+        // Update existing task
+        await api.updateTask(editingTask.id, {
+          name: data.name,
+          description: data.description,
+          params: data.params,
+          scheduleType: data.scheduleType,
+          scheduleValue: data.scheduleValue,
+          credentials: data.credentials,
+          enabled: data.enabled,
+        });
+      } else {
+        // Create new task
+        await api.createTask({
+          templateId: data.templateId,
+          name: data.name,
+          ...(data.description ? { description: data.description } : {}),
+          params: data.params,
+          scheduleType: data.scheduleType,
+          scheduleValue: data.scheduleValue,
+          credentials: data.credentials,
+          enabled: data.enabled,
+        });
+      }
+      await loadTasks();
+      setViewMode('list');
+      setEditingTask(null);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to save task');
+      throw err;
+    }
+  };
+
   // Filter tasks by search query
   const filteredTasks = tasks.filter((task) => {
     const template = templates.find((t) => t.id === task.templateId);
@@ -206,6 +274,20 @@ export function TasksView() {
     return `in ${Math.floor(diffMins / 1440)}d`;
   };
 
+  // Show editor view
+  if (viewMode === 'create' || viewMode === 'edit') {
+    return (
+      <TaskEditor
+        task={editingTask}
+        templates={templates}
+        credentials={credentials}
+        onSave={handleSaveTask}
+        onCancel={handleCancelEdit}
+      />
+    );
+  }
+
+  // List view
   if (loading) {
     return <LoadingSpinner message="Loading tasks..." />;
   }
@@ -228,6 +310,7 @@ export function TasksView() {
         icon="📋"
         title="No tasks yet"
         description="Create your first scheduled task to automate your workflows"
+        action={{ label: 'Create Task', onClick: handleCreateTask }}
       />
     );
   }
@@ -236,6 +319,9 @@ export function TasksView() {
     <div className="tasks-view">
       <div className="tasks-view__header">
         <h2 className="tasks-view__title">Tasks</h2>
+        <button className="btn btn--primary" onClick={handleCreateTask}>
+          Create Task
+        </button>
       </div>
 
       <div className="tasks-view__filters">
@@ -361,6 +447,13 @@ export function TasksView() {
                         title="Run now"
                       >
                         ▶
+                      </button>
+                      <button
+                        className="btn btn--small btn--secondary"
+                        onClick={() => handleEditTask(task)}
+                        title="Edit"
+                      >
+                        ✏
                       </button>
                       <button
                         className="btn btn--small btn--secondary"
