@@ -1,23 +1,20 @@
 import { useState, useEffect } from 'react';
 import './styles/index.css';
+import { useTheme } from './contexts/ThemeContext';
+import type { SystemStatus } from '../shared/types.js';
 
 type View = 'tasks' | 'templates' | 'executions' | 'credentials';
 
-interface ServerStatus {
-  status: string;
-  version: string;
-  uptime: number;
-}
-
 function App() {
   const [currentView, setCurrentView] = useState<View>('tasks');
-  const [serverStatus, setServerStatus] = useState<ServerStatus | null>(null);
+  const [serverStatus, setServerStatus] = useState<SystemStatus | null>(null);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const loadServerStatus = async () => {
       try {
         const response = await fetch('/api/status');
-        const data = (await response.json()) as ServerStatus;
+        const data = (await response.json()) as SystemStatus;
         setServerStatus(data);
       } catch (error) {
         console.error('Failed to load server status:', error);
@@ -70,6 +67,9 @@ function App() {
         </ul>
 
         <div className="sidebar-footer">
+          <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
           <span className="status">
             {serverStatus?.status === 'ok' ? 'Connected' : 'Disconnected'}
           </span>
