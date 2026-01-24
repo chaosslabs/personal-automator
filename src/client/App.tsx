@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import './styles/index.css';
 import { useTheme } from './contexts/ThemeContext';
 import { TemplatesView } from './views/TemplatesView';
+import { TasksView } from './views/TasksView';
 import type { SystemStatus } from '../shared/types.js';
 
 type View = 'tasks' | 'templates' | 'executions' | 'credentials';
@@ -80,8 +81,7 @@ function App() {
       <main className="content">
         {currentView === 'tasks' && (
           <div className="view">
-            <h2>Tasks</h2>
-            <p className="placeholder">Task list will be implemented in Phase 3.</p>
+            <TasksView />
           </div>
         )}
         {currentView === 'templates' && (
