@@ -147,13 +147,13 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [ ] Validation before save
 
 ### 3.5 Execution Logs
-- [ ] Execution history table with filtering
-- [ ] Detailed execution view
+- [x] Execution history table with filtering
+- [x] Detailed execution view
   - Console output display
   - Return value display
   - Error stack traces
-- [ ] Real-time log streaming for running tasks
-- [ ] Export logs functionality
+- [x] Real-time log streaming for running tasks
+- [x] Export logs functionality
 
 ### 3.6 Credential Manager
 - [ ] Credential list with masked values
