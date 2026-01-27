@@ -113,38 +113,38 @@ Development roadmap for Personal Automator organized into phases with clear mile
 **Goal**: React web UI with full task and template management
 
 ### 3.1 Application Shell
-- [ ] Create main layout with navigation
-- [ ] Implement dark/light theme support
-- [ ] Set up API client for server communication
-- [ ] Create loading and error states
+- [x] Create main layout with navigation
+- [x] Implement dark/light theme support
+- [x] Set up API client for server communication
+- [x] Create loading and error states
 
 ### 3.2 Template Management (UI-only features)
-- [ ] Template list view with categories
-- [ ] Template editor with Monaco Editor
+- [x] Template list view with categories
+- [x] Template editor with Monaco Editor
   - Syntax highlighting for JavaScript
   - Parameter schema builder UI
   - Required credentials selector
-- [ ] Create new template from scratch
-- [ ] Edit existing templates
-- [ ] Delete templates (with task dependency warning)
-- [ ] Import/export templates
+- [x] Create new template from scratch
+- [x] Edit existing templates
+- [x] Delete templates (with task dependency warning)
+- [x] Import/export templates
 
 ### 3.3 Task List View
-- [ ] Display all tasks with status indicators
-- [ ] Show template name, next run, last status
-- [ ] Quick actions: run, edit params, enable/disable, delete
-- [ ] Search and filter by template, status
-- [ ] Bulk operations (delete, enable/disable)
+- [x] Display all tasks with status indicators
+- [x] Show template name, next run, last status
+- [x] Quick actions: run, edit params, enable/disable, delete
+- [x] Search and filter by template, status
+- [x] Bulk operations (delete, enable/disable)
 
 ### 3.4 Task Configuration
-- [ ] Template selector (from available templates)
-- [ ] Parameter form (generated from template schema)
-- [ ] Schedule configuration UI
+- [x] Template selector (from available templates)
+- [x] Parameter form (generated from template schema)
+- [x] Schedule configuration UI
   - Cron expression builder
   - One-time datetime picker
   - Interval selector
-- [ ] Additional credential assignment
-- [ ] Validation before save
+- [x] Additional credential assignment
+- [x] Validation before save
 
 ### 3.5 Execution Logs
 - [x] Execution history table with filtering
