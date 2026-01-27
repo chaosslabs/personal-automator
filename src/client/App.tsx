@@ -3,6 +3,7 @@ import './styles/index.css';
 import { useTheme } from './contexts/ThemeContext';
 import { TemplatesView } from './views/TemplatesView';
 import { TasksView } from './views/TasksView';
+import { ExecutionsView } from './views/ExecutionsView';
 import type { SystemStatus } from '../shared/types.js';
 
 type View = 'tasks' | 'templates' | 'executions' | 'credentials';
@@ -91,8 +92,7 @@ function App() {
         )}
         {currentView === 'executions' && (
           <div className="view">
-            <h2>Execution History</h2>
-            <p className="placeholder">Execution logs will be implemented in Phase 3.</p>
+            <ExecutionsView />
           </div>
         )}
         {currentView === 'credentials' && (
