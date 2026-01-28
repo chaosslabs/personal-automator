@@ -156,11 +156,11 @@ Development roadmap for Personal Automator organized into phases with clear mile
 - [x] Export logs functionality
 
 ### 3.6 Credential Manager
-- [ ] Credential list with masked values
-- [ ] Add new credential form
-- [ ] Edit credential (re-enter value)
-- [ ] Delete with usage warning
-- [ ] Credential usage overview (which templates/tasks use it)
+- [x] Credential list with masked values
+- [x] Add new credential form
+- [x] Edit credential (re-enter value)
+- [x] Delete with usage warning
+- [x] Credential usage overview (which templates/tasks use it)
 
 ---
 
@@ -169,40 +169,40 @@ Development roadmap for Personal Automator organized into phases with clear mile
 **Goal**: Production-ready application
 
 ### 4.1 Error Handling & Recovery
-- [ ] Comprehensive error boundaries in UI
-- [ ] Automatic retry for failed tasks (configurable)
-- [ ] Database corruption recovery
-- [ ] Graceful handling of missing credentials
+- [x] Comprehensive error boundaries in UI
+- [x] Automatic retry for failed tasks (configurable)
+- [x] Database corruption recovery
+- [x] Graceful handling of missing credentials
 
 ### 4.2 Notifications
-- [ ] System notifications for task completion/failure
-- [ ] Notification preferences
-- [ ] Optional sound alerts
+- [x] System notifications for task completion/failure
+- [x] Notification preferences
+- [x] Optional sound alerts
 
 ### 4.3 Built-in Templates
-- [ ] HTTP Health Check template
-- [ ] GitHub PR Creation template
-- [ ] Slack/Discord notification template
-- [ ] Database backup template
-- [ ] Webhook trigger template
-- [ ] File watcher template
+- [x] HTTP Health Check template
+- [x] GitHub PR Creation template
+- [x] Slack/Discord notification template
+- [x] Database backup template
+- [x] Webhook trigger template
+- [x] File watcher template
 
 ### 4.4 Import/Export
-- [ ] Export tasks as JSON
-- [ ] Import tasks from JSON
-- [ ] Backup/restore entire configuration
+- [x] Export tasks as JSON
+- [x] Import tasks from JSON
+- [x] Backup/restore entire configuration
 
 ### 4.5 Distribution
-- [ ] Docker container image
-- [ ] systemd service file for Linux
-- [ ] npm package publishing
-- [ ] Installation documentation
+- [x] Docker container image
+- [x] systemd service file for Linux
+- [x] npm package publishing
+- [x] Installation documentation
 
 ### 4.6 Documentation
-- [ ] User guide
-- [ ] Task code examples
-- [ ] MCP client setup guides
-- [ ] Troubleshooting guide
+- [x] User guide
+- [x] Task code examples
+- [x] MCP client setup guides
+- [x] Troubleshooting guide
 
 ---
 

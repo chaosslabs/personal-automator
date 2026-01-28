@@ -1,0 +1,30 @@
+[Unit]
+Description=Personal Automator - Local Task Automation Engine
+Documentation=https://github.com/chaosslabs/personal-automator
+After=network.target
+
+[Service]
+Type=simple
+User=%i
+Group=%i
+WorkingDirectory=/opt/personal-automator
+ExecStart=/usr/bin/node dist/server/index.js
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=personal-automator
+
+# Environment
+Environment=NODE_ENV=production
+Environment=PORT=3000
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/home/%i/.personal-automator
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

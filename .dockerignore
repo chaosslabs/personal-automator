@@ -1,0 +1,14 @@
+node_modules
+dist
+.git
+*.md
+!README.md
+tests
+.eslintrc*
+.prettierrc*
+tsconfig*.json
+vitest.config.*
+.env*
+*.db
+*.db-journal
+*.db-wal

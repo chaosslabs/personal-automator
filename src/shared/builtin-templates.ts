@@ -463,6 +463,280 @@ return {
   message,
 };`,
   },
+  {
+    id: 'github-pr-creation',
+    name: 'GitHub PR Creation',
+    description: 'Create a pull request on a GitHub repository using the GitHub API',
+    category: 'github',
+    paramsSchema: [
+      {
+        name: 'owner',
+        type: 'string',
+        required: true,
+        description: 'Repository owner (user or organization)',
+      },
+      {
+        name: 'repo',
+        type: 'string',
+        required: true,
+        description: 'Repository name',
+      },
+      {
+        name: 'title',
+        type: 'string',
+        required: true,
+        description: 'Pull request title',
+      },
+      {
+        name: 'head',
+        type: 'string',
+        required: true,
+        description: 'The branch containing changes',
+      },
+      {
+        name: 'base',
+        type: 'string',
+        required: false,
+        default: 'main',
+        description: 'The branch to merge into',
+      },
+      {
+        name: 'body',
+        type: 'string',
+        required: false,
+        default: '',
+        description: 'Pull request description',
+      },
+    ],
+    requiredCredentials: ['GITHUB_TOKEN'],
+    code: `// GitHub PR Creation
+// Creates a pull request using the GitHub REST API
+
+const token = credentials.GITHUB_TOKEN;
+if (!token) {
+  throw new Error('GITHUB_TOKEN credential is required');
+}
+
+const apiUrl = \`https://api.github.com/repos/\${params.owner}/\${params.repo}/pulls\`;
+
+const payload = {
+  title: params.title,
+  head: params.head,
+  base: params.base || 'main',
+  body: params.body || '',
+};
+
+console.log(\`Creating PR: \${params.title}\`);
+console.log(\`Repository: \${params.owner}/\${params.repo}\`);
+console.log(\`Branch: \${params.head} -> \${payload.base}\`);
+
+const response = await fetch(apiUrl, {
+  method: 'POST',
+  headers: {
+    'Authorization': \`Bearer \${token}\`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify(payload),
+});
+
+const data = await response.text();
+let parsed;
+try {
+  parsed = JSON.parse(data);
+} catch {
+  parsed = data;
+}
+
+if (!response.ok) {
+  console.error(\`GitHub API error: \${response.status}\`);
+  console.error(JSON.stringify(parsed, null, 2));
+  throw new Error(\`Failed to create PR: \${response.status} \${response.statusText}\`);
+}
+
+console.log(\`PR created successfully: #\${parsed.number}\`);
+console.log(\`URL: \${parsed.html_url}\`);
+
+return {
+  number: parsed.number,
+  url: parsed.html_url,
+  state: parsed.state,
+};`,
+  },
+  {
+    id: 'database-backup',
+    name: 'Database Backup',
+    description: 'Create a backup copy of a SQLite or other file-based database',
+    category: 'data',
+    paramsSchema: [
+      {
+        name: 'sourcePath',
+        type: 'string',
+        required: true,
+        description: 'Path to the database file to backup',
+      },
+      {
+        name: 'backupDir',
+        type: 'string',
+        required: true,
+        description: 'Directory to store backup files',
+      },
+      {
+        name: 'maxBackups',
+        type: 'number',
+        required: false,
+        default: 10,
+        description: 'Maximum number of backup files to keep',
+      },
+    ],
+    requiredCredentials: [],
+    suggestedSchedule: '0 2 * * *',
+    code: `// Database Backup
+// Creates a timestamped backup of a file-based database
+
+const fs = require('fs');
+const path = require('path');
+
+const sourcePath = params.sourcePath;
+const backupDir = params.backupDir;
+const maxBackups = params.maxBackups || 10;
+
+// Verify source exists
+if (!fs.existsSync(sourcePath)) {
+  throw new Error(\`Source file not found: \${sourcePath}\`);
+}
+
+// Create backup directory if needed
+if (!fs.existsSync(backupDir)) {
+  fs.mkdirSync(backupDir, { recursive: true });
+  console.log(\`Created backup directory: \${backupDir}\`);
+}
+
+// Generate backup filename with timestamp
+const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+const ext = path.extname(sourcePath);
+const baseName = path.basename(sourcePath, ext);
+const backupName = \`\${baseName}-\${timestamp}\${ext}\`;
+const backupPath = path.join(backupDir, backupName);
+
+// Copy file
+fs.copyFileSync(sourcePath, backupPath);
+const stats = fs.statSync(backupPath);
+console.log(\`Backup created: \${backupName}\`);
+console.log(\`Size: \${(stats.size / 1024).toFixed(1)} KB\`);
+
+// Cleanup old backups
+const backups = fs.readdirSync(backupDir)
+  .filter(f => f.startsWith(baseName) && f.endsWith(ext))
+  .sort()
+  .reverse();
+
+if (backups.length > maxBackups) {
+  const toDelete = backups.slice(maxBackups);
+  for (const old of toDelete) {
+    fs.unlinkSync(path.join(backupDir, old));
+    console.log(\`Deleted old backup: \${old}\`);
+  }
+  console.log(\`Cleaned up \${toDelete.length} old backup(s)\`);
+}
+
+return {
+  backupPath,
+  size: stats.size,
+  totalBackups: Math.min(backups.length, maxBackups),
+};`,
+  },
+  {
+    id: 'file-watcher',
+    name: 'File Watcher',
+    description: 'Check if files in a directory have been modified since the last check',
+    category: 'monitoring',
+    paramsSchema: [
+      {
+        name: 'directory',
+        type: 'string',
+        required: true,
+        description: 'Directory to watch for changes',
+      },
+      {
+        name: 'pattern',
+        type: 'string',
+        required: false,
+        default: '*',
+        description: 'File glob pattern to match (e.g., *.log, *.json)',
+      },
+      {
+        name: 'sinceMinutes',
+        type: 'number',
+        required: false,
+        default: 60,
+        description: 'Check for changes in the last N minutes',
+      },
+    ],
+    requiredCredentials: [],
+    suggestedSchedule: '*/30 * * * *',
+    code: `// File Watcher
+// Checks for recently modified files in a directory
+
+const fs = require('fs');
+const path = require('path');
+
+const directory = params.directory;
+const sinceMinutes = params.sinceMinutes || 60;
+const pattern = params.pattern || '*';
+const sinceTime = Date.now() - sinceMinutes * 60 * 1000;
+
+if (!fs.existsSync(directory)) {
+  throw new Error(\`Directory not found: \${directory}\`);
+}
+
+// Simple glob matching
+function matchPattern(filename, pat) {
+  if (pat === '*') return true;
+  const regex = new RegExp('^' + pat.replace(/\\*/g, '.*').replace(/\\?/g, '.') + '$');
+  return regex.test(filename);
+}
+
+const entries = fs.readdirSync(directory, { withFileTypes: true });
+const modifiedFiles = [];
+
+for (const entry of entries) {
+  if (!entry.isFile()) continue;
+  if (!matchPattern(entry.name, pattern)) continue;
+
+  const filePath = path.join(directory, entry.name);
+  const stats = fs.statSync(filePath);
+
+  if (stats.mtimeMs > sinceTime) {
+    modifiedFiles.push({
+      name: entry.name,
+      size: stats.size,
+      modified: stats.mtime.toISOString(),
+    });
+  }
+}
+
+console.log(\`Checked directory: \${directory}\`);
+console.log(\`Pattern: \${pattern}\`);
+console.log(\`Time window: last \${sinceMinutes} minutes\`);
+console.log(\`Modified files found: \${modifiedFiles.length}\`);
+
+for (const file of modifiedFiles) {
+  console.log(\`  - \${file.name} (\${(file.size / 1024).toFixed(1)} KB, modified: \${file.modified})\`);
+}
+
+if (modifiedFiles.length === 0) {
+  console.log('No changes detected');
+}
+
+return {
+  directory,
+  pattern,
+  sinceMinutes,
+  modifiedCount: modifiedFiles.length,
+  files: modifiedFiles,
+};`,
+  },
 ];
 
 export default builtinTemplates;
