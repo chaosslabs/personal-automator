@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import './styles/index.css';
 import { useTheme } from './contexts/ThemeContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { TemplatesView } from './views/TemplatesView';
 import { TasksView } from './views/TasksView';
 import { ExecutionsView } from './views/ExecutionsView';
+import { CredentialsView } from './views/CredentialsView';
+import { ImportExportView } from './views/ImportExportView';
 import type { SystemStatus } from '../shared/types.js';
 
-type View = 'tasks' | 'templates' | 'executions' | 'credentials';
+type View = 'tasks' | 'templates' | 'executions' | 'credentials' | 'import-export';
 
 function App() {
   const [currentView, setCurrentView] = useState<View>('tasks');
@@ -67,6 +70,14 @@ function App() {
               Credentials
             </button>
           </li>
+          <li>
+            <button
+              className={`nav-item ${currentView === 'import-export' ? 'active' : ''}`}
+              onClick={() => setCurrentView('import-export')}
+            >
+              Import/Export
+            </button>
+          </li>
         </ul>
 
         <div className="sidebar-footer">
@@ -80,27 +91,33 @@ function App() {
       </nav>
 
       <main className="content">
-        {currentView === 'tasks' && (
-          <div className="view">
-            <TasksView />
-          </div>
-        )}
-        {currentView === 'templates' && (
-          <div className="view">
-            <TemplatesView />
-          </div>
-        )}
-        {currentView === 'executions' && (
-          <div className="view">
-            <ExecutionsView />
-          </div>
-        )}
-        {currentView === 'credentials' && (
-          <div className="view">
-            <h2>Credential Vault</h2>
-            <p className="placeholder">Credential manager will be implemented in Phase 3.</p>
-          </div>
-        )}
+        <ErrorBoundary>
+          {currentView === 'tasks' && (
+            <div className="view">
+              <TasksView />
+            </div>
+          )}
+          {currentView === 'templates' && (
+            <div className="view">
+              <TemplatesView />
+            </div>
+          )}
+          {currentView === 'executions' && (
+            <div className="view">
+              <ExecutionsView />
+            </div>
+          )}
+          {currentView === 'credentials' && (
+            <div className="view">
+              <CredentialsView />
+            </div>
+          )}
+          {currentView === 'import-export' && (
+            <div className="view">
+              <ImportExportView />
+            </div>
+          )}
+        </ErrorBoundary>
       </main>
     </div>
   );
