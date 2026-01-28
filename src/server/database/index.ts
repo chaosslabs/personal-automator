@@ -41,7 +41,9 @@ export class DatabaseService {
   public readonly users: UserRepository;
 
   constructor(dbPath?: string) {
-    const dataDir = dbPath ? join(dbPath, '..') : join(homedir(), '.personal-automator');
+    // Support DATA_DIR env var for container deployments (Railway, Docker, etc.)
+    const defaultDataDir = process.env['DATA_DIR'] ?? join(homedir(), '.personal-automator');
+    const dataDir = dbPath ? join(dbPath, '..') : defaultDataDir;
     const dbFile = dbPath ?? join(dataDir, DATABASE_FILENAME);
 
     // Ensure data directory exists
