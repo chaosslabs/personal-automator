@@ -1,0 +1,108 @@
+.login-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--color-bg-primary);
+  padding: var(--spacing-md);
+}
+
+.login-card {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+.login-card h1 {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 1.75rem;
+  color: var(--color-text-primary);
+}
+
+.login-message {
+  color: var(--color-text-secondary);
+  margin: 0 0 var(--spacing-lg) 0;
+  font-size: 1rem;
+}
+
+.login-hint {
+  color: var(--color-text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.login-loading {
+  color: var(--color-text-secondary);
+  padding: var(--spacing-xl);
+}
+
+.login-providers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.login-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  font-family: var(--font-family);
+}
+
+.login-button:hover {
+  background: var(--color-bg-primary);
+  border-color: var(--color-accent);
+}
+
+.login-button:active {
+  transform: scale(0.98);
+}
+
+.login-button-icon {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.login-button-google {
+  background: #fff;
+  color: #333;
+  border-color: #ddd;
+}
+
+.login-button-google:hover {
+  background: #f5f5f5;
+  border-color: #4285f4;
+}
+
+.login-button-github {
+  background: #24292e;
+  color: #fff;
+  border-color: #24292e;
+}
+
+.login-button-github:hover {
+  background: #2f363d;
+  border-color: #6e7681;
+}
+
+.login-button-text {
+  flex: 1;
+  text-align: center;
+}

@@ -91,4 +91,33 @@ export const migrations: Migration[] = [
       CREATE INDEX IF NOT EXISTS idx_credentials_name ON credentials(name);
     `,
   },
+  {
+    name: '003_users_auth',
+    up: `
+      -- Users table for social login
+      CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL,
+        provider_id TEXT NOT NULL,
+        email TEXT,
+        name TEXT,
+        avatar_url TEXT,
+        created_at TEXT DEFAULT (datetime('now')),
+        last_login_at TEXT DEFAULT (datetime('now')),
+        UNIQUE(provider, provider_id)
+      );
+
+      -- Sessions table for express-session with SQLite store
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid TEXT PRIMARY KEY,
+        sess TEXT NOT NULL,
+        expired INTEGER NOT NULL
+      );
+
+      -- Indexes
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+      CREATE INDEX IF NOT EXISTS idx_users_provider ON users(provider, provider_id);
+      CREATE INDEX IF NOT EXISTS idx_sessions_expired ON sessions(expired);
+    `,
+  },
 ];
