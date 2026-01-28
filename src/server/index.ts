@@ -1,11 +1,20 @@
 import express, { type Request, type Response } from 'express';
 import cors from 'cors';
+import session from 'express-session';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { randomBytes } from 'crypto';
 import { getDatabase, closeDatabase } from './database/index.js';
 import { getVault, closeVault } from './vault/index.js';
 import { getExecutor, closeExecutor } from './executor/index.js';
 import { getScheduler, closeScheduler, Scheduler } from './scheduler/index.js';
+import {
+  passport,
+  configurePassport,
+  authRoutes,
+  isAuthEnabled,
+  getConfiguredProviders,
+} from './auth/index.js';
 import type {
   TaskFilters,
   ExecutionFilters,
@@ -90,8 +99,43 @@ scheduler.start();
 console.log('Scheduler initialized and started');
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  })
+);
 app.use(express.json());
+
+// Session configuration
+const sessionSecret = process.env['SESSION_SECRET'] ?? randomBytes(32).toString('hex');
+app.use(
+  session({
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env['NODE_ENV'] === 'production',
+      httpOnly: true,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    },
+  })
+);
+
+// Passport authentication
+configurePassport(db);
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Auth routes
+app.use('/auth', authRoutes);
+
+// Log auth status
+if (isAuthEnabled()) {
+  console.log('Authentication enabled with providers:', getConfiguredProviders().join(', '));
+} else {
+  console.log('Authentication disabled (no OAuth providers configured)');
+}
 
 // API Routes
 app.get('/api/status', (_req: Request, res: Response): void => {
@@ -107,6 +151,8 @@ app.get('/api/status', (_req: Request, res: Response): void => {
     enabledTasksCount: stats.enabledTasksCount,
     pendingExecutions: stats.pendingExecutions,
     recentErrors: stats.recentErrors,
+    authEnabled: isAuthEnabled(),
+    authProviders: getConfiguredProviders(),
   });
 });
 

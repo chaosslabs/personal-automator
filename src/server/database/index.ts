@@ -10,6 +10,7 @@ import {
   TaskRepository,
   ExecutionRepository,
   CredentialRepository,
+  UserRepository,
 } from './models/index.js';
 import type { MigrationRow } from './types.js';
 import type {
@@ -17,6 +18,8 @@ import type {
   Task,
   Execution,
   Credential,
+  User,
+  AuthProvider,
   ExecutionFilters,
   TaskFilters,
   ExecutionStatus,
@@ -35,6 +38,7 @@ export class DatabaseService {
   public readonly tasks: TaskRepository;
   public readonly executions: ExecutionRepository;
   public readonly credentials: CredentialRepository;
+  public readonly users: UserRepository;
 
   constructor(dbPath?: string) {
     const dataDir = dbPath ? join(dbPath, '..') : join(homedir(), '.personal-automator');
@@ -56,6 +60,7 @@ export class DatabaseService {
     this.tasks = new TaskRepository(this.db);
     this.executions = new ExecutionRepository(this.db);
     this.credentials = new CredentialRepository(this.db);
+    this.users = new UserRepository(this.db);
   }
 
   /**
@@ -294,6 +299,23 @@ export class DatabaseService {
     return this.credentials.getInUse();
   }
 
+  // Users
+  getUsers(): User[] {
+    return this.users.getAll();
+  }
+
+  getUser(id: number): User | null {
+    return this.users.getById(id);
+  }
+
+  getUserByProviderId(provider: AuthProvider, providerId: string): User | null {
+    return this.users.getByProviderId(provider, providerId);
+  }
+
+  findOrCreateUser(profile: Omit<User, 'id' | 'createdAt' | 'lastLoginAt'>): User {
+    return this.users.findOrCreate(profile);
+  }
+
   // Statistics
   getStats(): {
     templatesCount: number;
@@ -301,6 +323,7 @@ export class DatabaseService {
     enabledTasksCount: number;
     executionsCount: number;
     credentialsCount: number;
+    usersCount: number;
     pendingExecutions: number;
     recentErrors: number;
   } {
@@ -310,6 +333,7 @@ export class DatabaseService {
       enabledTasksCount: this.tasks.getCount(true),
       executionsCount: this.executions.getAll({ limit: 1 }).total,
       credentialsCount: this.credentials.getAll().length,
+      usersCount: this.users.getCount(),
       pendingExecutions: this.executions.getPendingCount(),
       recentErrors: this.executions.getRecentErrorCount(),
     };
@@ -348,7 +372,13 @@ export function closeDatabase(): void {
 }
 
 // Re-export types and repositories for direct access
-export { TemplateRepository, TaskRepository, ExecutionRepository, CredentialRepository };
+export {
+  TemplateRepository,
+  TaskRepository,
+  ExecutionRepository,
+  CredentialRepository,
+  UserRepository,
+};
 export type { DatabaseInstance } from './types.js';
 
 export default DatabaseService;

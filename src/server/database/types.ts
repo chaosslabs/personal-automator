@@ -65,3 +65,20 @@ export interface MigrationRow {
   name: string;
   applied_at: string;
 }
+
+export interface UserRow {
+  id: number;
+  provider: string;
+  provider_id: string;
+  email: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  last_login_at: string;
+}
+
+export interface SessionRow {
+  sid: string;
+  sess: string;
+  expired: number;
+}

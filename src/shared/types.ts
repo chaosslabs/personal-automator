@@ -76,6 +76,20 @@ export interface Credential {
 
 export type CredentialType = 'api_key' | 'oauth_token' | 'env_var' | 'secret';
 
+// User types for social login
+export interface User {
+  id: number;
+  provider: AuthProvider;
+  providerId: string;
+  email: string | null;
+  name: string | null;
+  avatarUrl: string | null;
+  createdAt: string;
+  lastLoginAt: string;
+}
+
+export type AuthProvider = 'google' | 'github';
+
 // System types
 export interface SystemStatus {
   status: string;
@@ -88,6 +102,8 @@ export interface SystemStatus {
   enabledTasksCount: number;
   pendingExecutions: number;
   recentErrors: number;
+  authEnabled: boolean;
+  authProviders: AuthProvider[];
 }
 
 // Filter types for queries

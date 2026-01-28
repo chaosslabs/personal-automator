@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import './styles/index.css';
 import { useTheme } from './contexts/ThemeContext';
+import { useAuth } from './contexts/AuthContext';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TemplatesView } from './views/TemplatesView';
 import { TasksView } from './views/TasksView';
 import { ExecutionsView } from './views/ExecutionsView';
 import { CredentialsView } from './views/CredentialsView';
 import { ImportExportView } from './views/ImportExportView';
+import { LoginView } from './views/LoginView';
 import type { SystemStatus } from '../shared/types.js';
 
 type View = 'tasks' | 'templates' | 'executions' | 'credentials' | 'import-export';
@@ -15,6 +17,7 @@ function App() {
   const [currentView, setCurrentView] = useState<View>('tasks');
   const [serverStatus, setServerStatus] = useState<SystemStatus | null>(null);
   const { theme, toggleTheme } = useTheme();
+  const { authenticated, user, providers, loading: authLoading, logout } = useAuth();
 
   useEffect(() => {
     const loadServerStatus = async () => {
@@ -28,6 +31,25 @@ function App() {
     };
     void loadServerStatus();
   }, []);
+
+  // Show loading state while checking auth
+  if (authLoading) {
+    return (
+      <div className="app-loading">
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
+
+  // If auth is enabled (providers configured) and user is not authenticated, show login
+  const authEnabled = providers.length > 0;
+  if (authEnabled && !authenticated) {
+    return <LoginView />;
+  }
+
+  const handleLogout = () => {
+    void logout();
+  };
 
   return (
     <div className="app">
@@ -81,12 +103,23 @@ function App() {
         </ul>
 
         <div className="sidebar-footer">
-          <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          <span className="status">
-            {serverStatus?.status === 'ok' ? 'Connected' : 'Disconnected'}
-          </span>
+          {authenticated && user && (
+            <div className="user-info">
+              {user.avatarUrl && <img src={user.avatarUrl} alt="" className="user-avatar" />}
+              <span className="user-name">{user.name ?? user.email ?? 'User'}</span>
+              <button className="logout-button" onClick={handleLogout} title="Sign out">
+                Sign out
+              </button>
+            </div>
+          )}
+          <div className="footer-controls">
+            <button className="theme-toggle" onClick={toggleTheme} title="Toggle theme">
+              {theme === 'dark' ? 'Light' : 'Dark'}
+            </button>
+            <span className="status">
+              {serverStatus?.status === 'ok' ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
         </div>
       </nav>
 
