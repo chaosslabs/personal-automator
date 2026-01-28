@@ -23,6 +23,10 @@ FROM node:20-slim AS production
 
 WORKDIR /app
 
+# Install wget for health checks (node:20-slim doesn't include curl)
+RUN apt-get update && apt-get install -y --no-install-recommends wget \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy package files
 COPY package.json package-lock.json* ./
 
@@ -39,13 +43,14 @@ RUN mkdir -p /data/.personal-automator
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOME=/data
+ENV DATA_DIR=/data/.personal-automator
 
 # Expose port
 EXPOSE 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD node -e "fetch('http://localhost:3000/api/status').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
+# Health check using wget (more reliable than inline Node.js fetch)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/status || exit 1
 
 # Run as non-root user
 RUN groupadd -r automator && useradd -r -g automator -d /data automator

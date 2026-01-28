@@ -43,7 +43,9 @@ export class VaultService {
   private derivedKey: Buffer | null = null;
 
   constructor(dataDir?: string) {
-    this.dataDir = dataDir ?? join(homedir(), '.personal-automator');
+    // Support DATA_DIR env var for container deployments (Railway, Docker, etc.)
+    const defaultDataDir = process.env['DATA_DIR'] ?? join(homedir(), '.personal-automator');
+    this.dataDir = dataDir ?? defaultDataDir;
   }
 
   /**
